@@ -24,9 +24,9 @@ This repo root **is** the app (`index.html` lives here). In Vercel project setti
 | Setting | Value |
 |---------|--------|
 | **Root Directory** | *(leave empty)* |
-| **Build Command** | `npm run build` |
+| **Build Command** | `vite build` *(or leave empty — `vercel.json` sets this)* |
 | **Output Directory** | `dist` |
-| **Install Command** | `npm install` |
+| **Install Command** | `npm ci --include=dev` *(required so Vite/TypeScript dev deps install)* |
 
 Environment variables (Production):
 

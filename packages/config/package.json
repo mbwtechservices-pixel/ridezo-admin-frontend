@@ -15,6 +15,9 @@
     "vite.config.base.ts",
     "tsconfig.*.json"
   ],
+  "scripts": {
+    "build": "node -e \"\""
+  },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.10.2",
