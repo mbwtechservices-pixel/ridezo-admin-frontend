@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Quicksand', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-admin-bg: #f3faf8;
+  --color-admin-panel: #ffffff;
+  --color-admin-ink: #1a1a1a;
+  --color-admin-muted: #5f6f6c;
+  --color-admin-line: #d5e8e3;
+  --color-admin-sidebar: #0e3d38;
+  --color-admin-sidebar-ink: #e8f8f5;
+  --color-admin-teal: #16d1b2;
+  --color-admin-teal-soft: #0fb89a;
+  --color-admin-amber: #d97706;
+  --color-admin-rose: #e11d48;
+  --color-admin-emerald: #059669;
+  --color-admin-sky: #0284c7;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    margin: 0;
+    background: var(--color-admin-bg);
+    color: var(--color-admin-ink);
+    min-height: 100vh;
+    color-scheme: light;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-admin-teal) 28%, transparent);
+  }
+}
+
+@layer components {
+  .admin-panel {
+    @apply rounded-2xl border border-admin-line bg-admin-panel shadow-sm;
+  }
+
+  .admin-input {
+    @apply h-10 w-full rounded-xl border border-admin-line bg-white px-3 text-sm text-admin-ink
+           placeholder:text-admin-muted/70 outline-none
+           focus:border-admin-teal focus:ring-2 focus:ring-admin-teal/15;
+  }
+
+  .admin-btn-primary {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold
+           transition-colors disabled:cursor-not-allowed disabled:opacity-50
+           bg-admin-teal text-white hover:bg-admin-teal/90;
+  }
+
+  .admin-btn-secondary {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold
+           transition-colors disabled:cursor-not-allowed disabled:opacity-50
+           border border-admin-line bg-white text-admin-ink hover:bg-slate-50;
+  }
+
+  .admin-btn-ghost {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold
+           transition-colors disabled:cursor-not-allowed disabled:opacity-50
+           bg-transparent text-admin-muted hover:bg-slate-100 hover:text-admin-ink;
+  }
+}

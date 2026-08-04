@@ -1,0 +1,18 @@
+{
+  "name": "Ridezo Admin",
+  "short_name": "Ridezo Admin",
+  "description": "Ridezo operations dashboard",
+  "theme_color": "#16D1B2",
+  "background_color": "#f3faf8",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

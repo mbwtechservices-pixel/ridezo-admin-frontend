@@ -1,0 +1,64 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ridezo-primary-50: #eff6ff;
+  --color-ridezo-primary-100: #dbeafe;
+  --color-ridezo-primary-200: #bfdbfe;
+  --color-ridezo-primary-300: #93c5fd;
+  --color-ridezo-primary-400: #60a5fa;
+  --color-ridezo-primary-500: #3b82f6;
+  --color-ridezo-primary-600: #2563eb;
+  --color-ridezo-primary-700: #1d4ed8;
+  --color-ridezo-primary-800: #1e40af;
+  --color-ridezo-primary-900: #1e3a8a;
+  --color-ridezo-primary-950: #172554;
+
+  --color-ridezo-secondary-500: #22c55e;
+  --color-ridezo-secondary-600: #16a34a;
+
+  --color-ridezo-accent-500: #f97316;
+  --color-ridezo-accent-600: #ea580c;
+
+  --color-ridezo-danger-500: #ef4444;
+  --color-ridezo-danger-600: #dc2626;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --radius-ridezo: 0.75rem;
+
+  --shadow-ridezo: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-ridezo-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply font-sans antialiased text-gray-900 bg-white;
+  }
+}
+
+@layer components {
+  .ridezo-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .ridezo-card {
+    @apply rounded-ridezo bg-white border border-gray-100;
+    box-shadow: var(--shadow-ridezo);
+  }
+
+  .ridezo-input {
+    @apply w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm
+           placeholder:text-gray-400
+           focus:border-ridezo-primary-500 focus:outline-none focus:ring-2 focus:ring-ridezo-primary-500/20
+           disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500;
+  }
+
+  .ridezo-label {
+    @apply mb-1.5 block text-sm font-medium text-gray-700;
+  }
+}

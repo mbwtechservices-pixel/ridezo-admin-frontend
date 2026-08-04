@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+packages/*/dist/
+
+# Accidental tsc output in source
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+!src/**/*.config.js
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS
+.DS_Store
+
+# Testing
+coverage/
+
+# Capacitor
+android/
+ios/
+.capacitor/
+
+# Misc
+.cache/
+.temp/
+tmp/
