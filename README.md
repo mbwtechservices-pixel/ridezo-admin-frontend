@@ -19,14 +19,20 @@ Open http://localhost:5175 — login with `admin@ridezo.com` / `Admin@123`.
 
 ## Vercel
 
-This repo root **is** the app (`index.html` lives here). In Vercel project settings:
+This repo root **is** the app (`index.html` and `package.json` live here).
+
+> **Important:** In Vercel → Settings → General → **Root Directory**, leave the field **empty**.
+> If it is set to `packages/config`, `src`, or anything else, the build fails with
+> `Could not resolve entry module "index.html"`.
+
+Recommended settings (also in `vercel.json`):
 
 | Setting | Value |
 |---------|--------|
-| **Root Directory** | *(leave empty)* |
-| **Build Command** | `vite build` *(or leave empty — `vercel.json` sets this)* |
+| **Root Directory** | *(empty)* |
+| **Build Command** | `node scripts/vercel-build.mjs` |
 | **Output Directory** | `dist` |
-| **Install Command** | `npm ci --include=dev` *(required so Vite/TypeScript dev deps install)* |
+| **Install Command** | `node scripts/vercel-install.mjs` |
 
 Environment variables (Production):
 
