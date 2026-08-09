@@ -92,6 +92,11 @@ export interface AdminNotificationRow {
   sentAt: string;
 }
 
+export interface Greetings {
+  user: string;
+  driver: string;
+}
+
 export const adminApi = {
   listLocations: () => getData<Paginated<ServiceAreaRow>>('/admin/locations'),
   createLocation: (body: Omit<ServiceAreaRow, 'id'>) =>
@@ -120,4 +125,8 @@ export const adminApi = {
     audience: 'customers' | 'drivers' | 'all_users';
     channels?: string[];
   }) => postData('/admin/notifications/send', body),
+
+  getGreetings: () => getData<Greetings>('/admin/settings/greetings'),
+  updateGreetings: (body: Partial<Greetings>) =>
+    patchData<Greetings>('/admin/settings/greetings', body),
 };
