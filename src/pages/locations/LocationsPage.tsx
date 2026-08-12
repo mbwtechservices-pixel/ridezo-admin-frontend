@@ -8,21 +8,25 @@ import { adminApi, type ServiceAreaRow } from '@/shared/api/admin.api';
 
 const col = createColumnHelper<ServiceAreaRow>();
 
+const EMPTY_FORM = {
+  name: '',
+  city: '',
+  state: '',
+  country: 'India',
+  pincode: '',
+  latitude: 12.9716,
+  longitude: 77.5946,
+  radiusKm: 25,
+  isActive: true,
+};
+
 export function LocationsPage() {
   const [rows, setRows] = useState<ServiceAreaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    city: '',
-    state: '',
-    country: 'India',
-    latitude: 12.9716,
-    longitude: 77.5946,
-    radiusKm: 25,
-    isActive: true,
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,58 +45,117 @@ export function LocationsPage() {
     void load();
   }, [load]);
 
+  const resetForm = useCallback(() => {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setShowForm(false);
+  }, []);
+
+  const startCreate = () => {
+    if (showForm && !editingId) {
+      resetForm();
+      return;
+    }
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setError('');
+    setShowForm(true);
+  };
+
+  const startEdit = useCallback((row: ServiceAreaRow) => {
+    setEditingId(row.id);
+    setForm({
+      name: row.name ?? '',
+      city: row.city ?? '',
+      state: row.state ?? '',
+      country: row.country || 'India',
+      pincode: row.pincode ?? '',
+      latitude: row.latitude,
+      longitude: row.longitude,
+      radiusKm: row.radiusKm,
+      isActive: row.isActive,
+    });
+    setError('');
+    setShowForm(true);
+  }, []);
+
   const columns = useMemo(
     () => [
       col.accessor('name', { header: 'Area' }),
+      col.accessor('pincode', { header: 'Pincode' }),
       col.accessor('city', { header: 'City' }),
       col.accessor('state', { header: 'State' }),
       col.accessor('radiusKm', { header: 'Radius (km)' }),
       col.accessor('isActive', {
         header: 'Status',
         cell: (info) => (
-          <StatusBadge
-            label={info.getValue() ? 'active' : 'inactive'}
-            tone={info.getValue() ? 'success' : 'neutral'}
-          />
+          <button
+            type="button"
+            onClick={() =>
+              void adminApi
+                .updateLocation(info.row.original.id, { isActive: !info.getValue() })
+                .then(load)
+                .catch((err: unknown) =>
+                  setError(err instanceof Error ? err.message : 'Could not update status'),
+                )
+            }
+          >
+            <StatusBadge
+              label={info.getValue() ? 'active' : 'inactive'}
+              tone={info.getValue() ? 'success' : 'neutral'}
+            />
+          </button>
         ),
       }),
       col.display({
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => (
-          <button
-            type="button"
-            className="admin-btn-ghost text-xs text-admin-rose"
-            onClick={() =>
-              void adminApi.deleteLocation(row.original.id).then(load).catch(console.error)
-            }
-          >
-            Remove
-          </button>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              className="admin-btn-ghost text-xs"
+              onClick={() => startEdit(row.original)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="admin-btn-ghost text-xs text-admin-rose"
+              onClick={() =>
+                void adminApi
+                  .deleteLocation(row.original.id)
+                  .then(() => {
+                    if (editingId === row.original.id) resetForm();
+                    return load();
+                  })
+                  .catch((err: unknown) =>
+                    setError(err instanceof Error ? err.message : 'Could not remove location'),
+                  )
+              }
+            >
+              Remove
+            </button>
+          </div>
         ),
       }),
     ],
-    [load],
+    [editingId, load, resetForm, startEdit],
   );
 
-  const create = async (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     try {
-      await adminApi.createLocation(form);
-      setShowForm(false);
-      setForm({
-        name: '',
-        city: '',
-        state: '',
-        country: 'India',
-        latitude: 12.9716,
-        longitude: 77.5946,
-        radiusKm: 25,
-        isActive: true,
-      });
+      if (editingId) {
+        await adminApi.updateLocation(editingId, form);
+      } else {
+        await adminApi.createLocation(form);
+      }
+      resetForm();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create location');
+      setError(err instanceof Error ? err.message : 'Could not save location');
     }
   };
 
@@ -100,9 +163,9 @@ export function LocationsPage() {
     <div>
       <PageHeader
         title="Service Locations"
-        description="Manage cities and regions where Ridezo operates."
+        description="Manage active pincodes. Riders and drivers can only operate in these PINs."
         actions={
-          <button type="button" className="admin-btn-primary" onClick={() => setShowForm((s) => !s)}>
+          <button type="button" className="admin-btn-primary" onClick={startCreate}>
             <Plus className="h-4 w-4" />
             Add location
           </button>
@@ -110,10 +173,26 @@ export function LocationsPage() {
       />
 
       {showForm && (
-        <form onSubmit={(e) => void create(e)} className="admin-panel mb-6 grid gap-4 p-5 md:grid-cols-2">
+        <form onSubmit={(e) => void save(e)} className="admin-panel mb-6 grid gap-4 p-5 md:grid-cols-2">
+          <p className="md:col-span-2 text-sm font-medium text-admin-ink">
+            {editingId ? 'Edit location' : 'Add location'}
+          </p>
           <label className="block text-sm">
             <span className="mb-1 block text-admin-muted">Area name</span>
             <input className="admin-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-admin-muted">Pincode</span>
+            <input
+              className="admin-input"
+              inputMode="numeric"
+              maxLength={6}
+              pattern="\d{6}"
+              placeholder="560001"
+              value={form.pincode}
+              onChange={(e) => setForm({ ...form, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+              required
+            />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block text-admin-muted">City</span>
@@ -135,9 +214,21 @@ export function LocationsPage() {
             <span className="mb-1 block text-admin-muted">Longitude</span>
             <input className="admin-input" type="number" step="any" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: Number(e.target.value) })} />
           </label>
+          <label className="flex items-center gap-2 text-sm md:col-span-2">
+            <input
+              type="checkbox"
+              checked={form.isActive}
+              onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+            />
+            Active (bookings allowed in this pincode)
+          </label>
           <div className="md:col-span-2 flex gap-2">
-            <button type="submit" className="admin-btn-primary">Save location</button>
-            <button type="button" className="admin-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="submit" className="admin-btn-primary">
+              {editingId ? 'Update location' : 'Save location'}
+            </button>
+            <button type="button" className="admin-btn-ghost" onClick={resetForm}>
+              Cancel
+            </button>
           </div>
         </form>
       )}

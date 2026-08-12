@@ -404,6 +404,7 @@ export const createServiceAreaSchema = z.object({
   city: z.string().min(2).max(100),
   state: z.string().min(2).max(100),
   country: z.string().min(2).max(100).default('India'),
+  pincode: z.string().regex(/^\d{6}$/, 'Pincode must be a 6-digit Indian PIN'),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   radiusKm: z.number().min(1).max(500).default(25),

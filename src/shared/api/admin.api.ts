@@ -1,5 +1,17 @@
 import type { ApiResponse } from '@ridezo/types';
+import axios from 'axios';
 import { apiClient } from '@/shared/api/client';
+
+function toApiError(error: unknown, fallback: string): Error {
+  if (axios.isAxiosError(error)) {
+    const payload = error.response?.data as { message?: string } | undefined;
+    if (typeof payload?.message === 'string' && payload.message.trim()) {
+      return new Error(payload.message);
+    }
+    return new Error(error.message || fallback);
+  }
+  return error instanceof Error ? error : new Error(fallback);
+}
 
 interface Paginated<T> {
   items: T[];
@@ -10,27 +22,43 @@ interface Paginated<T> {
 }
 
 async function getData<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-  const { data } = await apiClient.get<ApiResponse<T>>(path, { params });
-  if (!data.data) throw new Error(data.message || 'Request failed');
-  return data.data;
+  try {
+    const { data } = await apiClient.get<ApiResponse<T>>(path, { params });
+    if (!data.data) throw new Error(data.message || 'Request failed');
+    return data.data;
+  } catch (error) {
+    throw toApiError(error, 'Request failed');
+  }
 }
 
 async function postData<T>(path: string, body: unknown): Promise<T> {
-  const { data } = await apiClient.post<ApiResponse<T>>(path, body);
-  if (!data.data) throw new Error(data.message || 'Request failed');
-  return data.data;
+  try {
+    const { data } = await apiClient.post<ApiResponse<T>>(path, body);
+    if (!data.data) throw new Error(data.message || 'Request failed');
+    return data.data;
+  } catch (error) {
+    throw toApiError(error, 'Request failed');
+  }
 }
 
 async function patchData<T>(path: string, body: unknown): Promise<T> {
-  const { data } = await apiClient.patch<ApiResponse<T>>(path, body);
-  if (!data.data) throw new Error(data.message || 'Request failed');
-  return data.data;
+  try {
+    const { data } = await apiClient.patch<ApiResponse<T>>(path, body);
+    if (!data.data) throw new Error(data.message || 'Request failed');
+    return data.data;
+  } catch (error) {
+    throw toApiError(error, 'Request failed');
+  }
 }
 
 async function deleteData<T>(path: string): Promise<T> {
-  const { data } = await apiClient.delete<ApiResponse<T>>(path);
-  if (!data.data) throw new Error(data.message || 'Request failed');
-  return data.data;
+  try {
+    const { data } = await apiClient.delete<ApiResponse<T>>(path);
+    if (!data.data) throw new Error(data.message || 'Request failed');
+    return data.data;
+  } catch (error) {
+    throw toApiError(error, 'Request failed');
+  }
 }
 
 export interface ServiceAreaRow {
@@ -39,6 +67,7 @@ export interface ServiceAreaRow {
   city: string;
   state: string;
   country: string;
+  pincode: string;
   latitude: number;
   longitude: number;
   radiusKm: number;
@@ -98,7 +127,7 @@ export interface Greetings {
 }
 
 export const adminApi = {
-  listLocations: () => getData<Paginated<ServiceAreaRow>>('/admin/locations'),
+  listLocations: () => getData<Paginated<ServiceAreaRow>>('/admin/locations', { limit: 100 }),
   createLocation: (body: Omit<ServiceAreaRow, 'id'>) =>
     postData<ServiceAreaRow>('/admin/locations', body),
   updateLocation: (id: string, body: Partial<ServiceAreaRow>) =>

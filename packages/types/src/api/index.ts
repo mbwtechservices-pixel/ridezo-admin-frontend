@@ -236,12 +236,18 @@ export interface PlaceDetails {
   name: string;
   formattedAddress: string;
   location: LatLng;
+  postalCode?: string;
+  city?: string;
+  state?: string;
 }
 
 export interface GeocodeResult {
   formattedAddress: string;
   location: LatLng;
   placeId?: string;
+  postalCode?: string;
+  city?: string;
+  state?: string;
 }
 
 export interface RouteLeg {

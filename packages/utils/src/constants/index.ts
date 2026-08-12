@@ -52,6 +52,9 @@ export const HTTP_STATUS = {
   SERVICE_UNAVAILABLE: 503,
 } as const;
 
+export const AREA_NOT_SERVICEABLE_MESSAGE =
+  'Ride booking is not available in this area. Please move to a nearby available location and book your ride.';
+
 export const ERROR_CODES = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR',
