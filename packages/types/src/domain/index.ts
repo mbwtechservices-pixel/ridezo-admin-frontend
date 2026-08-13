@@ -135,6 +135,9 @@ export interface RideRequest extends BaseEntity, SoftDeletable {
   scheduledAt?: Date;
   expiresAt?: Date;
   notes?: string;
+  bookedForOther?: boolean;
+  passengerName?: string;
+  passengerPhone?: string;
   matchedTripId?: string;
   cancelledAt?: Date;
   cancellationReason?: string;
@@ -177,6 +180,9 @@ export interface Trip extends BaseEntity, SoftDeletable {
   cancellationInitiator?: CancellationInitiator;
   polyline?: string;
   otp?: string;
+  bookedForOther?: boolean;
+  passengerName?: string;
+  passengerPhone?: string;
 }
 
 export interface Payment extends BaseEntity, SoftDeletable {

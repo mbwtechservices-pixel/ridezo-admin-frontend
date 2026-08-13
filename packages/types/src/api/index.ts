@@ -155,6 +155,11 @@ export interface RideRequestSocketPayload {
   requestId: string;
   customerId: string;
   customerName?: string;
+  customerPhone?: string;
+  bookedForOther?: boolean;
+  bookerName?: string;
+  passengerName?: string;
+  passengerPhone?: string;
   vehicleType: string;
   pickup: { latitude: number; longitude: number; address: string };
   dropoff: { latitude: number; longitude: number; address: string };
@@ -176,6 +181,10 @@ export interface TripSocketPayload {
   dropoff: { latitude: number; longitude: number; address: string };
   fareTotal?: number;
   otp?: string;
+  bookedForOther?: boolean;
+  bookerName?: string;
+  passengerName?: string;
+  passengerPhone?: string;
   driver?: {
     name: string;
     rating: number;

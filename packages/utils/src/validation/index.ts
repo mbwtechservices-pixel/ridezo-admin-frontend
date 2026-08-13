@@ -228,17 +228,38 @@ const locationInputSchema = z.object({
   label: z.string().max(100).optional(),
 });
 
-export const bookRideSchema = z.object({
-  pickup: locationInputSchema,
-  dropoff: locationInputSchema,
-  vehicleType: z.enum(['bike', 'auto', 'mini', 'sedan', 'suv', 'premium', 'economy', 'comfort']),
-  paymentMethod: z.enum(['cash', 'card', 'upi', 'wallet']).default('cash'),
-  estimatedFare: z.number().positive().optional(),
-  estimatedDistanceMeters: z.number().nonnegative().optional(),
-  estimatedDurationSeconds: z.number().nonnegative().optional(),
-  couponId: objectIdSchema.optional(),
-  notes: z.string().max(500).optional(),
-});
+export const bookRideSchema = z
+  .object({
+    pickup: locationInputSchema,
+    dropoff: locationInputSchema,
+    vehicleType: z.enum(['bike', 'auto', 'mini', 'sedan', 'suv', 'premium', 'economy', 'comfort']),
+    paymentMethod: z.enum(['cash', 'card', 'upi', 'wallet']).default('cash'),
+    estimatedFare: z.number().positive().optional(),
+    estimatedDistanceMeters: z.number().nonnegative().optional(),
+    estimatedDurationSeconds: z.number().nonnegative().optional(),
+    couponId: objectIdSchema.optional(),
+    notes: z.string().max(500).optional(),
+    bookForOther: z.boolean().optional().default(false),
+    passengerName: z.string().trim().min(2).max(80).optional(),
+    passengerPhone: phoneSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.bookForOther) return;
+    if (!value.passengerName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['passengerName'],
+        message: 'Friend name is required',
+      });
+    }
+    if (!value.passengerPhone) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['passengerPhone'],
+        message: 'Friend mobile number is required',
+      });
+    }
+  });
 
 export const rideIdParamSchema = z.object({
   id: objectIdSchema,
