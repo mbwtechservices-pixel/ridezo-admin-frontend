@@ -10,13 +10,13 @@ const col = createColumnHelper<ServiceAreaRow>();
 
 const EMPTY_FORM = {
   name: '',
-  city: '',
-  state: '',
+  city: 'Vijayawada',
+  state: 'Andhra Pradesh',
   country: 'India',
   pincode: '',
-  latitude: 12.9716,
-  longitude: 77.5946,
-  radiusKm: 25,
+  latitude: 16.5062,
+  longitude: 80.648,
+  radiusKm: 5,
   isActive: true,
 };
 
@@ -188,7 +188,7 @@ export function LocationsPage() {
               inputMode="numeric"
               maxLength={6}
               pattern="\d{6}"
-              placeholder="560001"
+              placeholder="520001"
               value={form.pincode}
               onChange={(e) => setForm({ ...form, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
               required

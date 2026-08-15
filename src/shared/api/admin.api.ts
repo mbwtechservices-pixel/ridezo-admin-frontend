@@ -127,7 +127,12 @@ export interface Greetings {
 }
 
 export const adminApi = {
-  listLocations: () => getData<Paginated<ServiceAreaRow>>('/admin/locations', { limit: 100 }),
+  listLocations: () =>
+    getData<Paginated<ServiceAreaRow>>('/admin/locations', {
+      limit: 100,
+      sortBy: 'pincode',
+      sortOrder: 'asc',
+    }),
   createLocation: (body: Omit<ServiceAreaRow, 'id'>) =>
     postData<ServiceAreaRow>('/admin/locations', body),
   updateLocation: (id: string, body: Partial<ServiceAreaRow>) =>

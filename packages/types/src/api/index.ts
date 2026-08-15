@@ -277,7 +277,7 @@ export interface DirectionsResult {
   legs: RouteLeg[];
   distanceMeters: number;
   durationSeconds: number;
-  provider: 'google' | 'haversine_fallback';
+  provider: 'google' | 'osrm' | 'haversine_fallback';
   cached: boolean;
 }
 
@@ -302,7 +302,7 @@ export interface FareEstimateResult {
   distanceKm: number;
   durationMinutes: number;
   polyline?: string;
-  provider: 'google' | 'haversine_fallback';
+  provider: 'google' | 'osrm' | 'haversine_fallback';
   cached: boolean;
   vehicles: FareVehicleEstimate[];
 }
@@ -323,4 +323,9 @@ export interface MapsConfigResponse {
   region: string;
   language: string;
   fallbackMode: boolean;
+  basemap: 'mapcn';
+  styles?: {
+    light: string;
+    dark: string;
+  };
 }
