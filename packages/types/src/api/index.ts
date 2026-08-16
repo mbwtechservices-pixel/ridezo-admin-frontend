@@ -316,6 +316,10 @@ export interface NearbyDriverResult {
   distanceMeters: number;
   etaSeconds?: number;
   etaText?: string;
+  /** Raw vehicle type from the driver's active vehicle (e.g. bike, auto, economy). */
+  vehicleType?: string;
+  /** UI category used for map icons: bike | auto | car. */
+  vehicleCategory?: 'bike' | 'auto' | 'car';
 }
 
 export interface MapsConfigResponse {

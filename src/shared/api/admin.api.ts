@@ -111,6 +111,17 @@ export interface AdminCmsRow {
   updatedAt: string;
 }
 
+export interface AdminRingtoneRow {
+  id: string;
+  name: string;
+  fileUrl: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AdminNotificationRow {
   id: string;
   title: string;
@@ -151,6 +162,26 @@ export const adminApi = {
   updateCms: (id: string, body: Record<string, unknown>) =>
     patchData<AdminCmsRow>(`/admin/cms/${id}`, body),
   deleteCms: (id: string) => deleteData<{ deleted: boolean }>(`/admin/cms/${id}`),
+
+  listRingtones: () => getData<Paginated<AdminRingtoneRow>>('/admin/ringtones', { limit: 50 }),
+  createRingtone: (body: {
+    name: string;
+    fileBase64: string;
+    mimeType: string;
+    fileName?: string;
+    isActive?: boolean;
+  }) => postData<AdminRingtoneRow>('/admin/ringtones', body),
+  updateRingtone: (
+    id: string,
+    body: {
+      name?: string;
+      isActive?: boolean;
+      fileBase64?: string;
+      mimeType?: string;
+      fileName?: string;
+    },
+  ) => patchData<AdminRingtoneRow>(`/admin/ringtones/${id}`, body),
+  deleteRingtone: (id: string) => deleteData<{ deleted: boolean }>(`/admin/ringtones/${id}`),
 
   listNotifications: () => getData<Paginated<AdminNotificationRow>>('/admin/notifications'),
   sendNotification: (body: {

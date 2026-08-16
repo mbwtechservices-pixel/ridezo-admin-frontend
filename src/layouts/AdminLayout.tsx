@@ -17,6 +17,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Music2,
 } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -33,6 +34,7 @@ const nav = [
   { to: '/coupons', label: 'Coupons', icon: Ticket },
   { to: '/locations', label: 'Locations', icon: MapPin },
   { to: '/cms', label: 'CMS', icon: FileText },
+  { to: '/ringtones', label: 'Ride Ringtones', icon: Music2 },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/notifications', label: 'Notifications', icon: Bell },
   { to: '/roles', label: 'Roles', icon: Shield },

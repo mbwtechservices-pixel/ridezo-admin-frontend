@@ -20,6 +20,7 @@ const PaymentsPage = lazyPage(() => import('@/pages/payments/PaymentsPage'), 'Pa
 const CouponsPage = lazyPage(() => import('@/pages/coupons/CouponsPage'), 'CouponsPage');
 const LocationsPage = lazyPage(() => import('@/pages/locations/LocationsPage'), 'LocationsPage');
 const CmsPage = lazyPage(() => import('@/pages/cms/CmsPage'), 'CmsPage');
+const RingtonesPage = lazyPage(() => import('@/pages/ringtones/RingtonesPage'), 'RingtonesPage');
 const AnalyticsPage = lazyPage(() => import('@/pages/analytics/AnalyticsPage'), 'AnalyticsPage');
 const NotificationsPage = lazyPage(
   () => import('@/pages/notifications/NotificationsPage'),
@@ -56,6 +57,7 @@ export function AppRouter() {
             <Route path="/coupons" element={<CouponsPage />} />
             <Route path="/locations" element={<LocationsPage />} />
             <Route path="/cms" element={<CmsPage />} />
+            <Route path="/ringtones" element={<RingtonesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/roles" element={<RolesPage />} />
