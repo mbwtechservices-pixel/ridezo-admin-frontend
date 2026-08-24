@@ -8,7 +8,10 @@ function toApiError(error: unknown, fallback: string): Error {
     if (typeof payload?.message === 'string' && payload.message.trim()) {
       return new Error(payload.message);
     }
-    return new Error(error.message || fallback);
+    if (!error.response && (error.message === 'Network Error' || error.code === 'ERR_NETWORK')) {
+      return new Error('Cannot reach the Ridezo API. Make sure the backend is running.');
+    }
+    return new Error(fallback);
   }
   return error instanceof Error ? error : new Error(fallback);
 }
@@ -137,6 +140,17 @@ export interface Greetings {
   driver: string;
 }
 
+export interface AppAvailability {
+  unavailable: boolean;
+  message: string;
+}
+
+export interface ReferralCommissions {
+  userToUser: number;
+  userToDriver: number;
+  driverToAny: number;
+}
+
 export const adminApi = {
   listLocations: () =>
     getData<Paginated<ServiceAreaRow>>('/admin/locations', {
@@ -194,4 +208,13 @@ export const adminApi = {
   getGreetings: () => getData<Greetings>('/admin/settings/greetings'),
   updateGreetings: (body: Partial<Greetings>) =>
     patchData<Greetings>('/admin/settings/greetings', body),
+
+  getAppAvailability: () => getData<AppAvailability>('/admin/settings/availability'),
+  updateAppAvailability: (body: { unavailable: boolean }) =>
+    patchData<AppAvailability>('/admin/settings/availability', body),
+
+  getReferralCommissions: () =>
+    getData<ReferralCommissions>('/admin/settings/referral-commissions'),
+  updateReferralCommissions: (body: Partial<ReferralCommissions>) =>
+    patchData<ReferralCommissions>('/admin/settings/referral-commissions', body),
 };

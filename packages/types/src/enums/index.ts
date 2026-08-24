@@ -222,6 +222,7 @@ export enum WalletTransactionSource {
   CASHBACK = 'cashback',
   ADMIN_ADJUSTMENT = 'admin_adjustment',
   WITHDRAWAL = 'withdrawal',
+  REFERRAL = 'referral',
 }
 
 export enum ReviewTargetType {
