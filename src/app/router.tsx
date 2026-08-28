@@ -19,6 +19,10 @@ const TripsPage = lazyPage(() => import('@/pages/trips/TripsPage'), 'TripsPage')
 const PaymentsPage = lazyPage(() => import('@/pages/payments/PaymentsPage'), 'PaymentsPage');
 const CouponsPage = lazyPage(() => import('@/pages/coupons/CouponsPage'), 'CouponsPage');
 const LocationsPage = lazyPage(() => import('@/pages/locations/LocationsPage'), 'LocationsPage');
+const RecommendedPlacesPage = lazyPage(
+  () => import('@/pages/recommended-places/RecommendedPlacesPage'),
+  'RecommendedPlacesPage',
+);
 const CmsPage = lazyPage(() => import('@/pages/cms/CmsPage'), 'CmsPage');
 const RingtonesPage = lazyPage(() => import('@/pages/ringtones/RingtonesPage'), 'RingtonesPage');
 const AnalyticsPage = lazyPage(() => import('@/pages/analytics/AnalyticsPage'), 'AnalyticsPage');
@@ -30,6 +34,7 @@ const RolesPage = lazyPage(() => import('@/pages/roles/RolesPage'), 'RolesPage')
 const PermissionsPage = lazyPage(() => import('@/pages/permissions/PermissionsPage'), 'PermissionsPage');
 const AuditLogsPage = lazyPage(() => import('@/pages/audit-logs/AuditLogsPage'), 'AuditLogsPage');
 const SettingsPage = lazyPage(() => import('@/pages/settings/SettingsPage'), 'SettingsPage');
+const AdBannersPage = lazyPage(() => import('@/pages/ad-banners/AdBannersPage'), 'AdBannersPage');
 const NotFoundPage = lazyPage(() => import('@/pages/not-found/NotFoundPage'), 'NotFoundPage');
 
 function RouteFallback(): ReactNode {
@@ -56,6 +61,7 @@ export function AppRouter() {
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/coupons" element={<CouponsPage />} />
             <Route path="/locations" element={<LocationsPage />} />
+            <Route path="/recommended-places" element={<RecommendedPlacesPage />} />
             <Route path="/cms" element={<CmsPage />} />
             <Route path="/ringtones" element={<RingtonesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
@@ -64,6 +70,7 @@ export function AppRouter() {
             <Route path="/permissions" element={<PermissionsPage />} />
             <Route path="/audit-logs" element={<AuditLogsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/ad-banners" element={<AdBannersPage />} />
           </Route>
         </Route>
 

@@ -8,6 +8,7 @@ import {
   Ticket,
   FileText,
   MapPin,
+  Sparkles,
   BarChart3,
   Bell,
   Shield,
@@ -18,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Music2,
+  Megaphone,
 } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -33,8 +35,10 @@ const nav = [
   { to: '/payments', label: 'Payments', icon: CreditCard },
   { to: '/coupons', label: 'Coupons', icon: Ticket },
   { to: '/locations', label: 'Locations', icon: MapPin },
+  { to: '/recommended-places', label: 'Recommended Places', icon: Sparkles },
   { to: '/cms', label: 'CMS', icon: FileText },
   { to: '/ringtones', label: 'Ride Ringtones', icon: Music2 },
+  { to: '/ad-banners', label: 'Ad Banners', icon: Megaphone },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/notifications', label: 'Notifications', icon: Bell },
   { to: '/roles', label: 'Roles', icon: Shield },

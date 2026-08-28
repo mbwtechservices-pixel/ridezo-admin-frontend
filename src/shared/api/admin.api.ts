@@ -77,6 +77,17 @@ export interface ServiceAreaRow {
   isActive: boolean;
 }
 
+export interface RecommendedPlaceRow {
+  id: string;
+  pincode: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface AdminDriverRow {
   id: string;
   userId: string;
@@ -151,6 +162,23 @@ export interface ReferralCommissions {
   driverToAny: number;
 }
 
+export interface AdsBannersSetting {
+  enabled: boolean;
+}
+
+export interface AdminAdBannerRow {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl?: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const adminApi = {
   listLocations: () =>
     getData<Paginated<ServiceAreaRow>>('/admin/locations', {
@@ -163,6 +191,20 @@ export const adminApi = {
   updateLocation: (id: string, body: Partial<ServiceAreaRow>) =>
     patchData<ServiceAreaRow>(`/admin/locations/${id}`, body),
   deleteLocation: (id: string) => deleteData<{ deleted: boolean }>(`/admin/locations/${id}`),
+
+  listRecommendedPlaces: (params?: { pincode?: string }) =>
+    getData<Paginated<RecommendedPlaceRow>>('/admin/recommended-places', {
+      limit: 200,
+      sortBy: 'sortOrder',
+      sortOrder: 'asc',
+      ...params,
+    }),
+  createRecommendedPlace: (body: Omit<RecommendedPlaceRow, 'id'>) =>
+    postData<RecommendedPlaceRow>('/admin/recommended-places', body),
+  updateRecommendedPlace: (id: string, body: Partial<RecommendedPlaceRow>) =>
+    patchData<RecommendedPlaceRow>(`/admin/recommended-places/${id}`, body),
+  deleteRecommendedPlace: (id: string) =>
+    deleteData<{ deleted: boolean }>(`/admin/recommended-places/${id}`),
 
   listDrivers: () => getData<Paginated<AdminDriverRow>>('/admin/drivers'),
   updateDriverVerification: (id: string, status: 'approved' | 'rejected' | 'under_review' | 'pending') =>
@@ -212,6 +254,17 @@ export const adminApi = {
   getAppAvailability: () => getData<AppAvailability>('/admin/settings/availability'),
   updateAppAvailability: (body: { unavailable: boolean }) =>
     patchData<AppAvailability>('/admin/settings/availability', body),
+
+  getAdsBannersEnabled: () => getData<AdsBannersSetting>('/admin/settings/ad-banners'),
+  updateAdsBannersEnabled: (body: { enabled: boolean }) =>
+    patchData<AdsBannersSetting>('/admin/settings/ad-banners', body),
+
+  listAdBanners: () => getData<Paginated<AdminAdBannerRow>>('/admin/ad-banners', { limit: 50 }),
+  createAdBanner: (body: Record<string, unknown>) =>
+    postData<AdminAdBannerRow>('/admin/ad-banners', body),
+  updateAdBanner: (id: string, body: Record<string, unknown>) =>
+    patchData<AdminAdBannerRow>(`/admin/ad-banners/${id}`, body),
+  deleteAdBanner: (id: string) => deleteData<{ deleted: boolean }>(`/admin/ad-banners/${id}`),
 
   getReferralCommissions: () =>
     getData<ReferralCommissions>('/admin/settings/referral-commissions'),

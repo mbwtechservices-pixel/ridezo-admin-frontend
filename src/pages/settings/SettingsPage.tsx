@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { adminApi, type AppAvailability, type Greetings, type ReferralCommissions } from '@/shared/api/admin.api';
+import { adminApi, type AppAvailability, type AdsBannersSetting, type Greetings, type ReferralCommissions } from '@/shared/api/admin.api';
 
 function friendlySettingsError(err: unknown, fallback: string): string {
   const message = err instanceof Error ? err.message : fallback;
@@ -147,6 +148,94 @@ function GreetingsPanel() {
             {error && <span className="text-sm text-red-600">{error}</span>}
           </div>
         </>
+      )}
+    </section>
+  );
+}
+
+function AdsBannerPanel() {
+  const [setting, setSetting] = useState<AdsBannersSetting>({ enabled: false });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setSetting(await adminApi.getAdsBannersEnabled());
+    } catch (err) {
+      setError(friendlySettingsError(err, 'Could not load ads banner setting'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const toggle = async () => {
+    const next = !setting.enabled;
+    setSaving(true);
+    setError('');
+    try {
+      setSetting(await adminApi.updateAdsBannersEnabled({ enabled: next }));
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(friendlySettingsError(err, 'Could not update ads banner setting'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="admin-panel p-6">
+      <h2 className="text-base font-semibold text-admin-ink">Ads Banner</h2>
+      <p className="mt-1 text-sm text-admin-muted">
+        When ON, active ad banners appear on the User app Home screen near Saved and Recent
+        Places. When OFF, ads are hidden completely. Upload and manage banner images on the{' '}
+        <Link to="/ad-banners" className="font-medium text-admin-teal underline">
+          Ad Banners
+        </Link>{' '}
+        page.
+      </p>
+
+      {loading ? (
+        <p className="mt-5 text-sm text-admin-muted">Loading…</p>
+      ) : (
+        <div className="mt-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-admin-ink">
+                {setting.enabled ? 'Ads are visible in the User app' : 'Ads are hidden'}
+              </p>
+              <p className="mt-0.5 text-xs text-admin-muted">
+                Toggle ON to show uploaded banners · Toggle OFF to hide all ads
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={setting.enabled}
+              disabled={saving}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                setting.enabled ? 'bg-admin-teal' : 'bg-slate-300'
+              }`}
+              onClick={() => void toggle()}
+            >
+              <span
+                className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition-all ${
+                  setting.enabled ? 'left-5' : 'left-0.5'
+                }`}
+              />
+            </button>
+          </div>
+          {saved && <p className="text-sm text-admin-teal">Ads banner setting saved.</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
       )}
     </section>
   );
@@ -420,6 +509,7 @@ export function SettingsPage() {
 
       <div className="space-y-4">
         <AppAvailabilityPanel />
+        <AdsBannerPanel />
         <ReferralCommissionPanel />
         <GreetingsPanel />
 
