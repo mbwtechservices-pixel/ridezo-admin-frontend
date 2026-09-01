@@ -9,6 +9,8 @@ export interface UserRow {
   trips: number;
   joinedAt: string;
   city: string;
+  isDemo?: boolean;
+  isOnline?: boolean;
 }
 
 export interface DriverRow {
@@ -29,11 +31,13 @@ export interface VehicleRow {
   plate: string;
   make: string;
   model: string;
-  type: 'mini' | 'sedan' | 'suv' | 'premium';
+  type: 'bike' | 'auto' | 'mini' | 'sedan' | 'suv' | 'premium';
   driver: string;
   status: 'active' | 'inactive' | 'maintenance';
   year: number;
   city: string;
+  isDemo?: boolean;
+  driverPhone?: string;
 }
 
 export interface TripRow {

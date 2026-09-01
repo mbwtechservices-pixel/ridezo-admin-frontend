@@ -88,6 +88,34 @@ export interface RecommendedPlaceRow {
   isActive: boolean;
 }
 
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: 'active' | 'inactive' | 'blocked';
+  accountStatus: string;
+  isOnline: boolean;
+  trips: number;
+  joinedAt: string;
+  city: string;
+}
+
+export interface AdminVehicleRow {
+  id: string;
+  plate: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  type: 'bike' | 'auto' | 'mini' | 'sedan' | 'suv' | 'premium';
+  driver: string;
+  driverPhone?: string;
+  status: 'active' | 'inactive' | 'maintenance';
+  city: string;
+  createdAt: string;
+}
+
 export interface AdminDriverRow {
   id: string;
   userId: string;
@@ -207,6 +235,16 @@ export const adminApi = {
     deleteData<{ deleted: boolean }>(`/admin/recommended-places/${id}`),
 
   listDrivers: () => getData<Paginated<AdminDriverRow>>('/admin/drivers'),
+  listUsers: (params?: { search?: string }) =>
+    getData<Paginated<AdminUserRow>>('/admin/users', { limit: 200, sortOrder: 'desc', ...params }),
+  updateUserStatus: (id: string, status: 'active' | 'inactive' | 'blocked') =>
+    patchData<AdminUserRow>(`/admin/users/${id}/status`, { status }),
+  listVehicles: (params?: { search?: string }) =>
+    getData<Paginated<AdminVehicleRow>>('/admin/vehicles', {
+      limit: 200,
+      sortOrder: 'desc',
+      ...params,
+    }),
   updateDriverVerification: (id: string, status: 'approved' | 'rejected' | 'under_review' | 'pending') =>
     patchData(`/admin/drivers/${id}/verification`, { status }),
 
