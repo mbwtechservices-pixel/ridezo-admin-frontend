@@ -128,6 +128,11 @@ export interface AdminDriverRow {
   totalTrips: number;
   totalEarnings: number;
   joinedAt: string;
+  isBanned?: boolean;
+  banReason?: string | null;
+  banDurationLabel?: string | null;
+  banExpiresAt?: string | null;
+  bannedAt?: string | null;
 }
 
 export interface AdminCouponRow {
@@ -247,6 +252,14 @@ export const adminApi = {
     }),
   updateDriverVerification: (id: string, status: 'approved' | 'rejected' | 'under_review' | 'pending') =>
     patchData(`/admin/drivers/${id}/verification`, { status }),
+  banDriver: (
+    id: string,
+    body: {
+      duration: '10_days' | '20_days' | '1_month' | '6_months' | '1_year';
+      reason: string;
+    },
+  ) => postData(`/admin/drivers/${id}/ban`, body),
+  unbanDriver: (id: string) => postData(`/admin/drivers/${id}/unban`, {}),
 
   listCoupons: () => getData<Paginated<AdminCouponRow>>('/admin/coupons'),
   createCoupon: (body: Record<string, unknown>) => postData<AdminCouponRow>('/admin/coupons', body),

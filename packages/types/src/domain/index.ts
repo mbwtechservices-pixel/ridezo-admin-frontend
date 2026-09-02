@@ -95,6 +95,11 @@ export interface Driver extends BaseEntity, SoftDeletable {
   currentLocation?: Location;
   isDocumentsVerified: boolean;
   isAvailable: boolean;
+  isBanned?: boolean;
+  banReason?: string | null;
+  banDurationLabel?: string | null;
+  banExpiresAt?: Date | string | null;
+  bannedAt?: Date | string | null;
   bankDetails?: {
     accountHolderName: string;
     accountNumber: string;
