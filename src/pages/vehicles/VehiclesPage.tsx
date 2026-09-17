@@ -6,7 +6,7 @@ import { FilterBar, SelectFilter } from '@/components/ui/FilterBar';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatCard';
 import { adminApi, type AdminVehicleRow } from '@/shared/api/admin.api';
-import { VEHICLES, type VehicleRow } from '@/shared/data/mock';
+import type { VehicleRow } from '@/shared/data/mock';
 import type { ExportColumn } from '@/shared/lib/export';
 
 const POLL_MS = 5000;
@@ -63,11 +63,7 @@ export function VehiclesPage() {
     return () => window.clearInterval(timer);
   }, [load]);
 
-  const rows = useMemo(() => {
-    const demoRows: VehicleRow[] = VEHICLES.map((vehicle) => ({ ...vehicle, isDemo: true }));
-    const realIds = new Set(realVehicles.map((vehicle) => vehicle.id));
-    return [...realVehicles, ...demoRows.filter((vehicle) => !realIds.has(vehicle.id))];
-  }, [realVehicles]);
+  const rows = useMemo(() => realVehicles, [realVehicles]);
 
   const filtered = useMemo(
     () =>
@@ -114,11 +110,6 @@ export function VehiclesPage() {
             {row.original.driverPhone ? (
               <span className="text-xs text-admin-muted">{row.original.driverPhone}</span>
             ) : null}
-            {row.original.isDemo ? (
-              <span className="text-[10px] uppercase tracking-wide text-admin-muted">Demo</span>
-            ) : (
-              <span className="text-[10px] uppercase tracking-wide text-admin-teal">Live</span>
-            )}
           </div>
         ),
       }),
@@ -148,7 +139,7 @@ export function VehiclesPage() {
     <div>
       <PageHeader
         title="Vehicles"
-        description="Live driver registrations appear at the top. Demo fleet data stays below for reference."
+        description="Registered driver vehicles. Number plate is the unique identifier — the same make, model, year, color, or type can appear more than once."
         actions={
           <ExportButtons
             rows={filtered}

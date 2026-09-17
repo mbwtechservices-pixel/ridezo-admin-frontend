@@ -93,7 +93,7 @@ export interface AdminUserRow {
   name: string;
   email: string;
   phone: string;
-  status: 'active' | 'inactive' | 'blocked';
+  status: 'active' | 'inactive';
   accountStatus: string;
   isOnline: boolean;
   trips: number;
@@ -133,6 +133,74 @@ export interface AdminDriverRow {
   banDurationLabel?: string | null;
   banExpiresAt?: string | null;
   bannedAt?: string | null;
+  documentsVerified?: boolean;
+  documentsUploaded?: boolean;
+  uploadedDocuments?: number;
+  verifiedDocuments?: number;
+}
+
+export interface AdminDriverDocumentCard {
+  id: string | null;
+  type: 'driving_license' | 'aadhaar' | 'pan' | 'profile_photo' | string;
+  fileUrl: string | null;
+  fileName: string | null;
+  mimeType: string | null;
+  status: string;
+  uploadedAt: string | null;
+}
+
+export interface AdminDriverDocumentsRow {
+  driverId: string;
+  name: string;
+  phone: string;
+  email: string;
+  verificationStatus: string;
+  documentsUploaded?: boolean;
+  documentsVerified?: boolean;
+  documents: AdminDriverDocumentCard[];
+}
+
+export interface AdminDashboardStats {
+  grossRevenue: number;
+  completedTrips: number;
+  userCount: number;
+  driverTotal: number;
+  driverOnline: number;
+  revenueSeries: Array<{ label: string; revenue: number; trips: number }>;
+  cityShare: Array<{ name: string; value: number; revenue: number; trips: number }>;
+}
+
+export interface AdminTripRow {
+  id: string;
+  rideId: string;
+  rider: string;
+  riderPhone?: string;
+  driver: string;
+  driverPhone?: string;
+  pickup: string;
+  dropoff: string;
+  distanceKm: number;
+  fare: number;
+  status: 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+  paymentMethod?: string;
+  createdAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
+export interface AdminPaymentRow {
+  id: string;
+  tripId: string;
+  rideId: string;
+  user: string;
+  userPhone?: string;
+  driver: string;
+  amount: number;
+  method: string;
+  status: 'SUCCESS' | 'FAILED' | 'REFUND' | 'PENDING';
+  transactionId: string;
+  createdAt: string;
+  paidAt?: string | null;
 }
 
 export interface AdminCouponRow {
@@ -227,7 +295,7 @@ export const adminApi = {
 
   listRecommendedPlaces: (params?: { pincode?: string }) =>
     getData<Paginated<RecommendedPlaceRow>>('/admin/recommended-places', {
-      limit: 200,
+      limit: 100,
       sortBy: 'sortOrder',
       sortOrder: 'asc',
       ...params,
@@ -239,19 +307,35 @@ export const adminApi = {
   deleteRecommendedPlace: (id: string) =>
     deleteData<{ deleted: boolean }>(`/admin/recommended-places/${id}`),
 
-  listDrivers: () => getData<Paginated<AdminDriverRow>>('/admin/drivers'),
+  listDrivers: () => getData<Paginated<AdminDriverRow>>('/admin/drivers', { limit: 100, sortOrder: 'desc' }),
+  listDriverDocuments: () =>
+    getData<{ items: AdminDriverDocumentsRow[]; total: number }>('/admin/driver-documents'),
+  verifyDriverDocument: (
+    driverId: string,
+    documentId: string,
+    body: { status: 'approved' | 'rejected'; note?: string },
+  ) =>
+    patchData(`/admin/drivers/${driverId}/documents/${documentId}/verify`, body),
   listUsers: (params?: { search?: string }) =>
-    getData<Paginated<AdminUserRow>>('/admin/users', { limit: 200, sortOrder: 'desc', ...params }),
-  updateUserStatus: (id: string, status: 'active' | 'inactive' | 'blocked') =>
+    getData<Paginated<AdminUserRow>>('/admin/users', { limit: 100, sortOrder: 'desc', ...params }),
+  getDashboard: () => getData<AdminDashboardStats>('/admin/dashboard'),
+  listTrips: () =>
+    getData<Paginated<AdminTripRow>>('/admin/trips', { limit: 100, sortOrder: 'desc' }),
+  listPayments: () =>
+    getData<Paginated<AdminPaymentRow>>('/admin/payments', { limit: 100, sortOrder: 'desc' }),
+  updateUserStatus: (id: string, status: 'active' | 'inactive') =>
     patchData<AdminUserRow>(`/admin/users/${id}/status`, { status }),
   listVehicles: (params?: { search?: string }) =>
     getData<Paginated<AdminVehicleRow>>('/admin/vehicles', {
-      limit: 200,
+      limit: 100,
       sortOrder: 'desc',
       ...params,
     }),
-  updateDriverVerification: (id: string, status: 'approved' | 'rejected' | 'under_review' | 'pending') =>
-    patchData(`/admin/drivers/${id}/verification`, { status }),
+  updateDriverVerification: (
+    id: string,
+    status: 'approved' | 'rejected' | 'under_review' | 'pending',
+    extra?: { identityConfirmed?: boolean; note?: string },
+  ) => patchData(`/admin/drivers/${id}/verification`, { status, ...extra }),
   banDriver: (
     id: string,
     body: {

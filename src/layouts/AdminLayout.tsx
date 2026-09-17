@@ -30,6 +30,7 @@ const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/drivers', label: 'Drivers', icon: CarFront },
+  { to: '/driver-documents', label: 'Driver Documents', icon: FileText },
   { to: '/vehicles', label: 'Vehicles', icon: Car },
   { to: '/trips', label: 'Trips', icon: Route },
   { to: '/payments', label: 'Payments', icon: CreditCard },

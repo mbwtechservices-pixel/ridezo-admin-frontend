@@ -5,7 +5,7 @@ export interface UserRow {
   name: string;
   email: string;
   phone: string;
-  status: 'active' | 'inactive' | 'blocked';
+  status: 'active' | 'inactive';
   trips: number;
   joinedAt: string;
   city: string;
@@ -47,7 +47,7 @@ export interface TripRow {
   pickup: string;
   dropoff: string;
   fare: number;
-  status: 'completed' | 'cancelled' | 'ongoing' | 'scheduled';
+  status: 'completed' | 'cancelled' | 'ongoing';
   distanceKm: number;
   createdAt: string;
 }
@@ -58,7 +58,7 @@ export interface PaymentRow {
   user: string;
   method: 'upi' | 'card' | 'wallet' | 'cash';
   amount: number;
-  status: 'success' | 'failed' | 'refunded' | 'pending';
+  status: 'success' | 'failed' | 'refund' | 'pending';
   createdAt: string;
 }
 
@@ -131,7 +131,7 @@ export const USERS: UserRow[] = Array.from({ length: 48 }, (_, i) => ({
   name: ['Aarav Mehta', 'Priya Nair', 'Kabir Shah', 'Ananya Rao', 'Rohan Das', 'Isha Kapoor'][i % 6]!,
   email: `user${i + 1}@mail.com`,
   phone: `98765${String(10000 + i).slice(-5)}`,
-  status: (['active', 'active', 'active', 'inactive', 'blocked'] as const)[i % 5]!,
+  status: (['active', 'active', 'active', 'inactive', 'inactive'] as const)[i % 5]!,
   trips: 3 + ((i * 7) % 120),
   joinedAt: daysAgo(i + 1),
   city: ['Bengaluru', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai'][i % 5]!,
@@ -169,7 +169,7 @@ export const TRIPS: TripRow[] = Array.from({ length: 60 }, (_, i) => ({
   pickup: ['MG Road', 'Indiranagar', 'Koramangala', 'Whitefield', 'Airport'][i % 5]!,
   dropoff: ['HSR', 'Jayanagar', 'Electronic City', 'Hebbal', 'Majestic'][i % 5]!,
   fare: 120 + (i % 20) * 45,
-  status: (['completed', 'completed', 'cancelled', 'ongoing', 'scheduled'] as const)[i % 5]!,
+  status: (['completed', 'completed', 'cancelled', 'ongoing'] as const)[i % 4]!,
   distanceKm: Number((3 + (i % 25) * 1.4).toFixed(1)),
   createdAt: daysAgo(i % 20),
 }));
@@ -180,7 +180,7 @@ export const PAYMENTS: PaymentRow[] = Array.from({ length: 55 }, (_, i) => ({
   user: USERS[i % USERS.length]!.name,
   method: (['upi', 'card', 'wallet', 'cash'] as const)[i % 4]!,
   amount: 120 + (i % 18) * 50,
-  status: (['success', 'success', 'failed', 'refunded', 'pending'] as const)[i % 5]!,
+  status: (['success', 'success', 'failed', 'refund', 'pending'] as const)[i % 5]!,
   createdAt: daysAgo(i % 15),
 }));
 

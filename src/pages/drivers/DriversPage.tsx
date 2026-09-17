@@ -1,5 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { DataTable } from '@/components/table/DataTable';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatCard';
@@ -32,12 +33,24 @@ function displayStatus(row: AdminDriverRow): { label: string; tone: 'success' | 
       tone: 'danger',
     };
   }
-  const status = row.verificationStatus;
+  const status = String(row.verificationStatus || 'pending').toLowerCase();
+  if (status === 'approved') {
+    const live = String(row.status || '').toLowerCase();
+    if (live === 'online' || live === 'on_ride' || live === 'busy') {
+      return { label: live.replace('_', ' '), tone: 'success' };
+    }
+    return { label: 'approved', tone: 'success' };
+  }
+  if (status === 'pending' || status === 'under_review') {
+    return { label: 'Pending Verification', tone: 'warning' };
+  }
   return {
     label: status,
     tone: verificationTone[status as keyof typeof verificationTone] ?? 'neutral',
   };
 }
+
+const POLL_MS = 5000;
 
 export function DriversPage() {
   const [rows, setRows] = useState<AdminDriverRow[]>([]);
@@ -47,34 +60,77 @@ export function DriversPage() {
   const [banDuration, setBanDuration] = useState<BanDuration>('10_days');
   const [banReason, setBanReason] = useState('');
   const [banBusy, setBanBusy] = useState(false);
+  const [approveTarget, setApproveTarget] = useState<AdminDriverRow | null>(null);
+  const [identityConfirmed, setIdentityConfirmed] = useState(false);
+  const [approveBusy, setApproveBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    if (!silent) setError('');
     try {
       const result = await adminApi.listDrivers();
-      setRows(result.items);
+      const items = Array.isArray(result.items) ? result.items : [];
+      setRows(items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load drivers');
+      if (!silent) {
+        setError(err instanceof Error ? err.message : 'Could not load drivers');
+        setRows([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void load();
+    const timer = window.setInterval(() => void load(true), POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [load]);
 
-  const updateVerification = async (
+  const updateVerification = useCallback(async (
     id: string,
     status: 'approved' | 'rejected' | 'under_review',
+    extra?: { identityConfirmed?: boolean },
   ) => {
     try {
-      await adminApi.updateDriverVerification(id, status);
+      await adminApi.updateDriverVerification(id, status, extra);
       await load();
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update driver');
+      return false;
     }
+  }, [load]);
+
+  const submitApprove = async () => {
+    if (!approveTarget) return;
+    if (!approveTarget.documentsVerified) {
+      setError(
+        'Verify Driving License, Aadhaar, PAN, and Profile Photo first. Do not approve if they belong to different people or the details do not match.',
+      );
+      return;
+    }
+    if (!identityConfirmed) {
+      setError(
+        'Confirm that Aadhaar, PAN, Driving License, and Profile Photo belong to the same person before approving.',
+      );
+      return;
+    }
+    setApproveBusy(true);
+    setError('');
+    const ok = await updateVerification(approveTarget.id, 'approved', { identityConfirmed: true });
+    if (ok) {
+      setApproveTarget(null);
+      setIdentityConfirmed(false);
+    }
+    setApproveBusy(false);
   };
 
   const submitBan = async () => {
@@ -99,19 +155,20 @@ export function DriversPage() {
     }
   };
 
-  const unban = async (id: string) => {
+  const unban = useCallback(async (id: string) => {
     try {
       await adminApi.unbanDriver(id);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not unban driver');
     }
-  };
+  }, [load]);
 
   const columns = useMemo(
     () => [
       col.accessor('name', { header: 'Driver' }),
       col.accessor('phone', { header: 'Phone' }),
+      col.accessor('email', { header: 'Email' }),
       col.accessor('rating', { header: 'Rating' }),
       col.accessor('totalTrips', { header: 'Trips' }),
       col.accessor('totalEarnings', {
@@ -172,13 +229,23 @@ export function DriversPage() {
             );
           }
 
-          // pending / under_review
+          const uploaded = Boolean(driver.documentsUploaded) || (driver.uploadedDocuments ?? 0) >= 4;
+          const verified = Boolean(driver.documentsVerified);
           return (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               <button
                 type="button"
                 className="admin-btn-ghost text-xs text-admin-teal"
-                onClick={() => void updateVerification(driver.id, 'approved')}
+                title={
+                  uploaded
+                    ? 'Approve after confirming all four documents belong to the same person'
+                    : 'Driver must upload Driving License, Aadhaar, PAN, and Profile Photo first'
+                }
+                onClick={() => {
+                  setApproveTarget(driver);
+                  setIdentityConfirmed(false);
+                  setError('');
+                }}
               >
                 Approve
               </button>
@@ -196,25 +263,78 @@ export function DriversPage() {
               >
                 Reject
               </button>
+              <Link to="/driver-documents" className="admin-btn-ghost text-xs">
+                {verified ? 'Documents verified' : `${driver.verifiedDocuments ?? 0}/4 docs`}
+              </Link>
             </div>
           );
         },
       }),
     ],
-    [],
+    [unban, updateVerification],
   );
 
   return (
     <div>
       <PageHeader
         title="Drivers"
-        description="Approve partners, keep them under review, reject permanently, or ban approved drivers for a set duration."
+        description="New drivers stay in Pending Verification until you confirm Aadhaar, PAN, Driving License, and Profile Photo belong to the same person, then Approve. Ban/Unban is available for approved drivers."
       />
       {error && <p className="mb-4 text-sm text-admin-rose">{error}</p>}
-      {loading ? (
+      {loading && rows.length === 0 ? (
         <p className="text-sm text-admin-muted">Loading drivers…</p>
       ) : (
-        <DataTable data={rows} columns={columns} />
+        <DataTable data={rows} columns={columns} emptyMessage="No registered drivers yet." />
+      )}
+
+      {approveTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="text-lg font-semibold text-admin-ink">Approve {approveTarget.name}</h3>
+            <p className="mt-1 text-sm text-admin-muted">
+              Review Aadhaar, PAN, Driving License, and Profile Photo. Approve only if they belong
+              to the same person and the details are consistent. If they show different people or
+              mismatched details, close this dialog and Reject the driver.
+            </p>
+            <p className="mt-3 text-sm text-admin-ink">
+              Documents verified: {approveTarget.verifiedDocuments ?? 0}/4
+              {approveTarget.documentsVerified ? ' · ready' : ' · open Driver Documents first'}
+            </p>
+            <label className="mt-4 flex items-start gap-2 text-sm text-admin-ink">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={identityConfirmed}
+                onChange={(event) => setIdentityConfirmed(event.target.checked)}
+              />
+              <span>
+                I confirm Aadhaar, PAN, Driving License, and Profile Photo belong to the same person
+                and match this driver.
+              </span>
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="admin-btn-ghost"
+                disabled={approveBusy}
+                onClick={() => {
+                  setApproveTarget(null);
+                  setIdentityConfirmed(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn-primary"
+                disabled={approveBusy || !identityConfirmed || !approveTarget.documentsVerified}
+                onClick={() => void submitApprove()}
+              >
+                {approveBusy ? 'Approving…' : 'Confirm Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {banTarget && (

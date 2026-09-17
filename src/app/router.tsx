@@ -14,6 +14,10 @@ const LoginPage = lazyPage(() => import('@/pages/login/LoginPage'), 'LoginPage')
 const DashboardPage = lazyPage(() => import('@/pages/dashboard/DashboardPage'), 'DashboardPage');
 const UsersPage = lazyPage(() => import('@/pages/users/UsersPage'), 'UsersPage');
 const DriversPage = lazyPage(() => import('@/pages/drivers/DriversPage'), 'DriversPage');
+const DriverDocumentsPage = lazyPage(
+  () => import('@/pages/drivers/DriverDocumentsPage'),
+  'DriverDocumentsPage',
+);
 const VehiclesPage = lazyPage(() => import('@/pages/vehicles/VehiclesPage'), 'VehiclesPage');
 const TripsPage = lazyPage(() => import('@/pages/trips/TripsPage'), 'TripsPage');
 const PaymentsPage = lazyPage(() => import('@/pages/payments/PaymentsPage'), 'PaymentsPage');
@@ -56,6 +60,7 @@ export function AppRouter() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/drivers" element={<DriversPage />} />
+            <Route path="/driver-documents" element={<DriverDocumentsPage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/payments" element={<PaymentsPage />} />

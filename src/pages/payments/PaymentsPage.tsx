@@ -1,54 +1,96 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTable } from '@/components/table/DataTable';
 import { ExportButtons } from '@/components/ui/ExportButtons';
 import { FilterBar, SelectFilter } from '@/components/ui/FilterBar';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatCard';
-import { PAYMENTS, type PaymentRow } from '@/shared/data/mock';
+import { adminApi, type AdminPaymentRow } from '@/shared/api/admin.api';
 import { formatCurrency, formatDate } from '@/shared/lib/cn';
 import type { ExportColumn } from '@/shared/lib/export';
 
-const col = createColumnHelper<PaymentRow>();
+const POLL_MS = 5000;
+const col = createColumnHelper<AdminPaymentRow>();
 
 const statusTone = {
-  success: 'success',
-  failed: 'danger',
-  refunded: 'warning',
-  pending: 'info',
+  SUCCESS: 'success',
+  FAILED: 'danger',
+  REFUND: 'warning',
+  PENDING: 'info',
 } as const;
 
 export function PaymentsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [method, setMethod] = useState('all');
+  const [rows, setRows] = useState<AdminPaymentRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    if (!silent) setError('');
+    try {
+      const result = await adminApi.listPayments();
+      setRows(Array.isArray(result.items) ? result.items : []);
+    } catch (err) {
+      if (!silent) {
+        setError(err instanceof Error ? err.message : 'Could not load payments');
+        setRows([]);
+      }
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => void load(true), POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [load]);
 
   const filtered = useMemo(
     () =>
-      PAYMENTS.filter((p) => {
+      rows.filter((payment) => {
         const q = search.toLowerCase();
         const matchesSearch =
           !q ||
-          p.id.toLowerCase().includes(q) ||
-          p.tripId.toLowerCase().includes(q) ||
-          p.user.toLowerCase().includes(q);
-        return (
-          matchesSearch &&
-          (status === 'all' || p.status === status) &&
-          (method === 'all' || p.method === method)
-        );
+          payment.id.toLowerCase().includes(q) ||
+          payment.tripId.toLowerCase().includes(q) ||
+          payment.rideId.toLowerCase().includes(q) ||
+          payment.user.toLowerCase().includes(q) ||
+          payment.driver.toLowerCase().includes(q) ||
+          payment.transactionId.toLowerCase().includes(q) ||
+          (payment.userPhone ?? '').includes(search);
+        const matchesMethod =
+          method === 'all' || payment.method.toLowerCase() === method.toLowerCase();
+        return matchesSearch && (status === 'all' || payment.status === status) && matchesMethod;
       }),
-    [search, status, method],
+    [rows, search, status, method],
   );
 
   const columns = useMemo(
     () => [
-      col.accessor('id', { header: 'Payment ID' }),
-      col.accessor('tripId', { header: 'Trip' }),
+      col.accessor('id', {
+        header: 'Payment ID',
+        cell: (info) => <span className="font-mono text-xs">{info.getValue()}</span>,
+      }),
+      col.accessor('tripId', {
+        header: 'Trip / Ride',
+        cell: ({ row }) => row.original.tripId || row.original.rideId || '—',
+      }),
       col.accessor('user', { header: 'User' }),
+      col.accessor('driver', { header: 'Driver' }),
       col.accessor('method', {
         header: 'Method',
-        cell: (info) => info.getValue().toUpperCase(),
+        cell: (info) => (info.getValue() || '—').toUpperCase(),
       }),
       col.accessor('amount', {
         header: 'Amount',
@@ -60,29 +102,37 @@ export function PaymentsPage() {
           <StatusBadge label={info.getValue()} tone={statusTone[info.getValue()]} />
         ),
       }),
+      col.accessor('transactionId', {
+        header: 'Transaction',
+        cell: (info) => info.getValue() || '—',
+      }),
       col.accessor('createdAt', {
-        header: 'Created',
+        header: 'Date / Time',
         cell: (info) => formatDate(info.getValue()),
       }),
     ],
     [],
   );
 
-  const exportCols: ExportColumn<PaymentRow>[] = [
+  const exportCols: ExportColumn<AdminPaymentRow>[] = [
     { header: 'Payment ID', accessor: (r) => r.id },
     { header: 'Trip', accessor: (r) => r.tripId },
+    { header: 'Ride', accessor: (r) => r.rideId },
     { header: 'User', accessor: (r) => r.user },
+    { header: 'User Mobile', accessor: (r) => r.userPhone ?? '' },
+    { header: 'Driver', accessor: (r) => r.driver },
     { header: 'Method', accessor: (r) => r.method },
     { header: 'Amount', accessor: (r) => r.amount },
     { header: 'Status', accessor: (r) => r.status },
-    { header: 'Created', accessor: (r) => formatDate(r.createdAt) },
+    { header: 'Transaction', accessor: (r) => r.transactionId },
+    { header: 'Date / Time', accessor: (r) => formatDate(r.createdAt) },
   ];
 
   return (
     <div>
       <PageHeader
         title="Payments"
-        description="Collections, refunds, and settlement status."
+        description="Live payment records from the database. Status is Success, Failed, Refund, or Pending."
         actions={
           <ExportButtons
             rows={filtered}
@@ -92,10 +142,11 @@ export function PaymentsPage() {
           />
         }
       />
+      {error && <p className="mb-4 text-sm text-admin-rose">{error}</p>}
       <FilterBar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search payment, trip, user…"
+        searchPlaceholder="Search payment, trip, user, transaction…"
         filters={
           <>
             <SelectFilter
@@ -104,10 +155,10 @@ export function PaymentsPage() {
               onChange={setStatus}
               options={[
                 { value: 'all', label: 'All statuses' },
-                { value: 'success', label: 'Success' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'failed', label: 'Failed' },
-                { value: 'refunded', label: 'Refunded' },
+                { value: 'SUCCESS', label: 'Success' },
+                { value: 'FAILED', label: 'Failed' },
+                { value: 'REFUND', label: 'Refund' },
+                { value: 'PENDING', label: 'Pending' },
               ]}
             />
             <SelectFilter
@@ -125,7 +176,11 @@ export function PaymentsPage() {
           </>
         }
       />
-      <DataTable data={filtered} columns={columns} />
+      {loading && rows.length === 0 ? (
+        <p className="text-sm text-admin-muted">Loading payments…</p>
+      ) : (
+        <DataTable data={filtered} columns={columns} emptyMessage="No payment records yet." />
+      )}
     </div>
   );
 }

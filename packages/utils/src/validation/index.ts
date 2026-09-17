@@ -1,15 +1,31 @@
 import { z } from 'zod';
-import { EMAIL_REGEX, INDIAN_PHONE_REGEX, PASSWORD_MIN_LENGTH } from '../constants';
+import {
+  EMAIL_REGEX,
+  INDIAN_PHONE_REGEX,
+  MAX_PAGE_SIZE,
+  PASSWORD_MIN_LENGTH,
+} from '../constants';
+
+function asDigitString(value: unknown): unknown {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(Math.trunc(Math.abs(value)));
+  }
+  if (typeof value === 'string') return value.trim();
+  return value;
+}
 
 export const emailSchema = z
   .string()
   .min(1, 'Email is required')
   .regex(EMAIL_REGEX, 'Invalid email address');
 
-export const phoneSchema = z
-  .string()
-  .min(10, 'Phone number must be at least 10 digits')
-  .regex(INDIAN_PHONE_REGEX, 'Invalid Indian phone number');
+export const phoneSchema = z.preprocess(
+  asDigitString,
+  z
+    .string()
+    .min(10, 'Phone number must be at least 10 digits')
+    .regex(INDIAN_PHONE_REGEX, 'Invalid Indian phone number'),
+);
 
 export const passwordSchema = z
   .string()
@@ -25,14 +41,22 @@ export const nameSchema = z
   .max(50, 'Name must not exceed 50 characters')
   .regex(/^[a-zA-Z\s'-]+$/, 'Name contains invalid characters');
 
-export const otpSchema = z
-  .string()
-  .length(6, 'OTP must be exactly 6 digits')
-  .regex(/^\d{6}$/, 'OTP must contain only digits');
+export const otpSchema = z.preprocess(
+  asDigitString,
+  z
+    .string()
+    .length(6, 'OTP must be exactly 6 digits')
+    .regex(/^\d{6}$/, 'OTP must contain only digits'),
+);
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_PAGE_SIZE, `Page size (limit) must be at most ${MAX_PAGE_SIZE}`)
+    .default(20),
   sortBy: z.string().optional(),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
