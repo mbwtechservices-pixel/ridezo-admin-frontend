@@ -39,6 +39,11 @@ const PermissionsPage = lazyPage(() => import('@/pages/permissions/PermissionsPa
 const AuditLogsPage = lazyPage(() => import('@/pages/audit-logs/AuditLogsPage'), 'AuditLogsPage');
 const SettingsPage = lazyPage(() => import('@/pages/settings/SettingsPage'), 'SettingsPage');
 const AdBannersPage = lazyPage(() => import('@/pages/ad-banners/AdBannersPage'), 'AdBannersPage');
+const CarRentalsPage = lazyPage(() => import('@/pages/rentals/CarRentalsPage'), 'CarRentalsPage');
+const RentalBookingsPage = lazyPage(
+  () => import('@/pages/rentals/RentalBookingsPage'),
+  'RentalBookingsPage',
+);
 const NotFoundPage = lazyPage(() => import('@/pages/not-found/NotFoundPage'), 'NotFoundPage');
 
 function RouteFallback(): ReactNode {
@@ -76,6 +81,8 @@ export function AppRouter() {
             <Route path="/audit-logs" element={<AuditLogsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/ad-banners" element={<AdBannersPage />} />
+            <Route path="/car-rentals" element={<CarRentalsPage />} />
+            <Route path="/rental-bookings" element={<RentalBookingsPage />} />
           </Route>
         </Route>
 

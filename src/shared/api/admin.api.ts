@@ -280,6 +280,70 @@ export interface AdminAdBannerRow {
   updatedAt: string;
 }
 
+export interface AdminRentalCarRow {
+  id: string;
+  name: string;
+  brand: string;
+  model: string;
+  year: number;
+  photos: Array<{ url: string; mimeType?: string }>;
+  location: string;
+  seatingCapacity: number;
+  transmission: 'manual' | 'automatic';
+  fuelType: 'petrol' | 'diesel' | 'cng' | 'electric' | 'hybrid';
+  features: string[];
+  availability: 'available' | 'unavailable';
+  isActive: boolean;
+  securityDeposit: number;
+  pricePerDay: number;
+  priceTwoDays: number;
+  description?: string;
+  color?: string;
+  sortOrder: number;
+}
+
+export interface AdminRentalBookingRow {
+  id: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  carName: string;
+  pickupLocation: string;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  totalAmount: number;
+  originalAmount?: number;
+  paymentStatus: 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUND' | string;
+  status: 'PENDING' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | string;
+  bookingDate?: string;
+  createdAt: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
+  cancelledAt?: string | null;
+  refundableAmount?: number;
+  refundedAmount?: number;
+  refundStatus?: string;
+}
+
+export interface RentalCancellationPolicy {
+  fullRefundHoursBeforeStart: number;
+  partialRefundHoursBeforeStart: number;
+  partialFareRefundPercent: number;
+  lateFareRefundPercent: number;
+  depositRefundableBeforeStart: boolean;
+  depositRefundableAfterStart: boolean;
+}
+
+export interface AdminRentalCancellationPreview {
+  canCancel: boolean;
+  blockReason: string;
+  originalAmount: number;
+  refundableAmount: number;
+  remainingRefund: number;
+  policyNote: string;
+}
+
 export const adminApi = {
   listLocations: () =>
     getData<Paginated<ServiceAreaRow>>('/admin/locations', {
@@ -400,6 +464,30 @@ export const adminApi = {
   updateAdBanner: (id: string, body: Record<string, unknown>) =>
     patchData<AdminAdBannerRow>(`/admin/ad-banners/${id}`, body),
   deleteAdBanner: (id: string) => deleteData<{ deleted: boolean }>(`/admin/ad-banners/${id}`),
+
+  listRentalCars: () =>
+    getData<Paginated<AdminRentalCarRow>>('/admin/rentals', { limit: 100, sortOrder: 'asc' }),
+  createRentalCar: (body: Record<string, unknown>) =>
+    postData<AdminRentalCarRow>('/admin/rentals', body),
+  updateRentalCar: (id: string, body: Record<string, unknown>) =>
+    patchData<AdminRentalCarRow>(`/admin/rentals/${id}`, body),
+  deleteRentalCar: (id: string) => deleteData<{ deleted: boolean }>(`/admin/rentals/${id}`),
+
+  listRentalBookings: () =>
+    getData<Paginated<AdminRentalBookingRow>>('/admin/rental-bookings', { limit: 500 }),
+  updateRentalBooking: (id: string, body: { status: string; reason?: string }) =>
+    patchData<AdminRentalBookingRow>(`/admin/rental-bookings/${id}`, body),
+  previewRentalCancellation: (id: string) =>
+    getData<AdminRentalCancellationPreview>(`/admin/rental-bookings/${id}/cancellation`),
+  cancelRentalBooking: (id: string, body: { reason?: string }) =>
+    postData<AdminRentalBookingRow>(`/admin/rental-bookings/${id}/cancel`, body),
+  refundRentalBooking: (id: string, body?: { reason?: string }) =>
+    postData<AdminRentalBookingRow>(`/admin/rental-bookings/${id}/refund`, body ?? {}),
+
+  getRentalCancellationPolicy: () =>
+    getData<RentalCancellationPolicy>('/admin/settings/rental-cancellation'),
+  updateRentalCancellationPolicy: (body: Partial<RentalCancellationPolicy>) =>
+    patchData<RentalCancellationPolicy>('/admin/settings/rental-cancellation', body),
 
   getReferralCommissions: () =>
     getData<ReferralCommissions>('/admin/settings/referral-commissions'),

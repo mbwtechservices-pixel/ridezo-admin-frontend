@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { adminApi, type AppAvailability, type AdsBannersSetting, type Greetings, type ReferralCommissions } from '@/shared/api/admin.api';
+import { adminApi, type AppAvailability, type AdsBannersSetting, type Greetings, type ReferralCommissions, type RentalCancellationPolicy } from '@/shared/api/admin.api';
 
 function friendlySettingsError(err: unknown, fallback: string): string {
   const message = err instanceof Error ? err.message : fallback;
@@ -468,6 +468,134 @@ function ReferralCommissionPanel() {
   );
 }
 
+function RentalCancellationPanel() {
+  const [policy, setPolicy] = useState<RentalCancellationPolicy>({
+    fullRefundHoursBeforeStart: 24,
+    partialRefundHoursBeforeStart: 4,
+    partialFareRefundPercent: 50,
+    lateFareRefundPercent: 0,
+    depositRefundableBeforeStart: true,
+    depositRefundableAfterStart: true,
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setPolicy(await adminApi.getRentalCancellationPolicy());
+    } catch (err) {
+      setError(friendlySettingsError(err, 'Could not load rental cancellation rules'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      setPolicy(await adminApi.updateRentalCancellationPolicy(policy));
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(friendlySettingsError(err, 'Could not save rental cancellation rules'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="admin-panel p-6">
+      <h2 className="text-base font-semibold text-admin-ink">Car rental cancellation & refunds</h2>
+      <p className="mt-1 text-sm text-admin-muted">
+        Refunds are calculated from these rules. Users can cancel pending and confirmed bookings. Admins can also cancel active rentals.
+      </p>
+      {loading ? (
+        <p className="mt-5 text-sm text-admin-muted">Loading…</p>
+      ) : (
+        <>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-admin-muted">Full refund hours before pickup</span>
+              <input
+                className="admin-input"
+                type="number"
+                min={0}
+                value={policy.fullRefundHoursBeforeStart}
+                onChange={(e) => setPolicy((prev) => ({ ...prev, fullRefundHoursBeforeStart: Number(e.target.value) }))}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-admin-muted">Partial refund hours before pickup</span>
+              <input
+                className="admin-input"
+                type="number"
+                min={0}
+                value={policy.partialRefundHoursBeforeStart}
+                onChange={(e) => setPolicy((prev) => ({ ...prev, partialRefundHoursBeforeStart: Number(e.target.value) }))}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-admin-muted">Partial fare refund %</span>
+              <input
+                className="admin-input"
+                type="number"
+                min={0}
+                max={100}
+                value={policy.partialFareRefundPercent}
+                onChange={(e) => setPolicy((prev) => ({ ...prev, partialFareRefundPercent: Number(e.target.value) }))}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-admin-muted">Late fare refund %</span>
+              <input
+                className="admin-input"
+                type="number"
+                min={0}
+                max={100}
+                value={policy.lateFareRefundPercent}
+                onChange={(e) => setPolicy((prev) => ({ ...prev, lateFareRefundPercent: Number(e.target.value) }))}
+              />
+            </label>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={policy.depositRefundableBeforeStart}
+                onChange={(e) => setPolicy((prev) => ({ ...prev, depositRefundableBeforeStart: e.target.checked }))}
+              />
+              Refund deposit before pickup
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={policy.depositRefundableAfterStart}
+                onChange={(e) => setPolicy((prev) => ({ ...prev, depositRefundableAfterStart: e.target.checked }))}
+              />
+              Refund deposit after pickup (admin cancel)
+            </label>
+          </div>
+          <div className="mt-5 flex items-center gap-3">
+            <button type="button" className="admin-btn-primary" disabled={saving} onClick={() => void save()}>
+              {saving ? 'Saving…' : saved ? 'Saved' : 'Save rental rules'}
+            </button>
+            {error && <span className="text-sm text-red-600">{error}</span>}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const [groups, setGroups] = useState(INITIAL);
   const [saved, setSaved] = useState(false);
@@ -511,6 +639,7 @@ export function SettingsPage() {
         <AppAvailabilityPanel />
         <AdsBannerPanel />
         <ReferralCommissionPanel />
+        <RentalCancellationPanel />
         <GreetingsPanel />
 
         {groups.map((group, gi) => (

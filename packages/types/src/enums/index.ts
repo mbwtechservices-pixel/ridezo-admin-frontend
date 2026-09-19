@@ -58,6 +58,15 @@ export enum PaymentMethod {
 export enum PaymentPurpose {
   TRIP = 'trip',
   WALLET_TOPUP = 'wallet_topup',
+  RENTAL = 'rental',
+}
+
+export enum RentalBookingStatus {
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
 }
 
 export enum InvoiceStatus {
