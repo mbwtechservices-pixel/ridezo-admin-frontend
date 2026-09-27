@@ -143,8 +143,13 @@ export interface AdminDriverDocumentCard {
   id: string | null;
   type: 'driving_license' | 'aadhaar' | 'pan' | 'profile_photo' | string;
   fileUrl: string | null;
+  frontImage?: string | null;
   fileName: string | null;
   mimeType: string | null;
+  fileUrlBack?: string | null;
+  backImage?: string | null;
+  fileNameBack?: string | null;
+  mimeTypeBack?: string | null;
   status: string;
   uploadedAt: string | null;
 }
@@ -186,6 +191,13 @@ export interface AdminTripRow {
   createdAt: string;
   startedAt?: string | null;
   completedAt?: string | null;
+  serviceKind?: string;
+  parcelPhotos?: {
+    senderName: string;
+    senderPhone: string;
+    pickup: Array<{ side: string; url: string; capturedAt: string; driverId: string }>;
+    delivery: Array<{ side: string; url: string; capturedAt: string; driverId: string }>;
+  } | null;
 }
 
 export interface AdminPaymentRow {

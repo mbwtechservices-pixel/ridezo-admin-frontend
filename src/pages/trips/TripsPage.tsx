@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/ui/StatCard';
 import { adminApi, type AdminTripRow } from '@/shared/api/admin.api';
 import { formatCurrency, formatDate } from '@/shared/lib/cn';
+import { resolveMediaUrl } from '@/shared/lib/media';
 import type { ExportColumn } from '@/shared/lib/export';
 
 const POLL_MS = 5000;
@@ -24,6 +25,7 @@ export function TripsPage() {
   const [rows, setRows] = useState<AdminTripRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -83,6 +85,10 @@ export function TripsPage() {
       col.accessor('driver', { header: 'Driver' }),
       col.accessor('pickup', { header: 'Pickup' }),
       col.accessor('dropoff', { header: 'Dropoff' }),
+      col.accessor('serviceKind', {
+        header: 'Service',
+        cell: (info) => (info.getValue() === 'parcel' ? 'Parcel on Bike' : 'Ride'),
+      }),
       col.accessor('distanceKm', { header: 'Km' }),
       col.accessor('fare', {
         header: 'Amount',
@@ -111,6 +117,7 @@ export function TripsPage() {
     { header: 'Driver Mobile', accessor: (r) => r.driverPhone ?? '' },
     { header: 'Pickup', accessor: (r) => r.pickup },
     { header: 'Dropoff', accessor: (r) => r.dropoff },
+    { header: 'Service', accessor: (r) => (r.serviceKind === 'parcel' ? 'Parcel on Bike' : 'Ride') },
     { header: 'Distance', accessor: (r) => r.distanceKm },
     { header: 'Amount', accessor: (r) => r.fare },
     { header: 'Status', accessor: (r) => r.status },
@@ -153,7 +160,99 @@ export function TripsPage() {
       {loading && rows.length === 0 ? (
         <p className="text-sm text-admin-muted">Loading trips…</p>
       ) : (
-        <DataTable data={filtered} columns={columns} emptyMessage="No ride transactions yet." />
+        <>
+          <DataTable data={filtered} columns={columns} emptyMessage="No ride transactions yet." />
+          <ParcelPhotoReview
+            trip={filtered.find((row) => row.id === selectedId) ?? filtered.find((row) => row.serviceKind === 'parcel') ?? null}
+            onSelect={setSelectedId}
+            trips={filtered.filter((row) => row.serviceKind === 'parcel')}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function ParcelPhotoReview({
+  trip,
+  trips,
+  onSelect,
+}: {
+  trip: AdminTripRow | null;
+  trips: AdminTripRow[];
+  onSelect: (id: string) => void;
+}) {
+  if (trips.length === 0) return null;
+  const selected = trip && trip.serviceKind === 'parcel' ? trip : trips[0];
+  const photos = selected?.parcelPhotos;
+
+  return (
+    <div className="admin-panel mt-6 p-5">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-admin-ink">Parcel safety photos</h2>
+          <p className="text-sm text-admin-muted">
+            Pickup and delivery confirmation photos are stored with timestamp and driver ID. They are not shown to users.
+          </p>
+        </div>
+        <label className="text-sm text-admin-muted">
+          Parcel trip
+          <select
+            className="ml-2 rounded-lg border border-admin-line bg-white px-3 py-2 text-admin-ink"
+            value={selected?.id ?? ''}
+            onChange={(e) => onSelect(e.target.value)}
+          >
+            {trips.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.id.slice(-8)} · {item.rider}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {selected && (
+        <p className="mb-4 text-sm text-admin-muted">
+          Sender {photos?.senderName || selected.rider}
+          {photos?.senderPhone ? ` · ${photos.senderPhone}` : ''}
+        </p>
+      )}
+      <div className="grid gap-6 md:grid-cols-2">
+        <PhotoGroup title="Pickup (front & back)" items={photos?.pickup ?? []} />
+        <PhotoGroup title="Delivery confirmation (front & back)" items={photos?.delivery ?? []} />
+      </div>
+    </div>
+  );
+}
+
+function PhotoGroup({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ side: string; url: string; capturedAt: string; driverId: string }>;
+}) {
+  return (
+    <div>
+      <h3 className="mb-3 text-sm font-semibold text-admin-ink">{title}</h3>
+      {items.length === 0 ? (
+        <p className="text-sm text-admin-muted">No photos uploaded yet.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {items.map((photo) => (
+            <figure key={`${photo.side}-${photo.url}`} className="space-y-1">
+              <img
+                src={resolveMediaUrl(photo.url)}
+                alt={`${photo.side} parcel photo`}
+                className="h-36 w-full rounded-xl object-cover"
+              />
+              <figcaption className="text-[11px] text-admin-muted">
+                {photo.side} · {photo.capturedAt ? formatDate(photo.capturedAt) : '—'}
+                <br />
+                Driver {photo.driverId}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       )}
     </div>
   );

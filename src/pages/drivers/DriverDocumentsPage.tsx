@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import {
@@ -7,6 +7,7 @@ import {
   type AdminDriverDocumentsRow,
 } from '@/shared/api/admin.api';
 import { resolveMediaUrl } from '@/shared/lib/media';
+import { cn } from '@/shared/lib/cn';
 
 const POLL_MS = 5000;
 
@@ -17,8 +18,36 @@ const CARD_LABELS: Record<string, string> = {
   profile_photo: 'Profile Photo',
 };
 
+const DOCUMENT_ORDER = ['driving_license', 'aadhaar', 'pan', 'profile_photo'] as const;
+
 function cardLabel(type: string): string {
   return CARD_LABELS[type] ?? type;
+}
+
+function orderedDocuments(documents: AdminDriverDocumentCard[]): AdminDriverDocumentCard[] {
+  return DOCUMENT_ORDER.map((type) => documents.find((doc) => doc.type === type)).filter(
+    (doc): doc is AdminDriverDocumentCard => Boolean(doc),
+  );
+}
+
+function isCardUploaded(card: AdminDriverDocumentCard): boolean {
+  const twoSided = card.type !== 'profile_photo';
+  const front = Boolean(card.frontImage || card.fileUrl);
+  const back = Boolean(card.backImage || card.fileUrlBack);
+  return twoSided ? front && back : front;
+}
+
+function nextUnverifiedCard(driver: AdminDriverDocumentsRow): AdminDriverDocumentCard | null {
+  return (
+    orderedDocuments(driver.documents).find((card) => isCardUploaded(card) && card.status !== 'approved') ??
+    null
+  );
+}
+
+function documentStatusLabel(status: string, uploaded: boolean): string {
+  if (!uploaded) return 'missing';
+  if (status === 'approved') return 'Verified';
+  return status;
 }
 
 export function DriverDocumentsPage() {
@@ -26,7 +55,6 @@ export function DriverDocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [identityOk, setIdentityOk] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [approveTarget, setApproveTarget] = useState<AdminDriverDocumentsRow | null>(null);
   const [approveIdentityOk, setApproveIdentityOk] = useState(false);
@@ -34,24 +62,30 @@ export function DriverDocumentsPage() {
     driver: AdminDriverDocumentsRow;
     card: AdminDriverDocumentCard;
   } | null>(null);
+  const skipPreviewSync = useRef(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     if (!silent) setError('');
     try {
       const result = await adminApi.listDriverDocuments();
-      setRows(result.items);
-      setPreview((current) => {
-        if (!current) return current;
-        const nextDriver = result.items.find((row) => row.driverId === current.driver.driverId);
-        if (!nextDriver) return current;
-        const nextCard = nextDriver.documents.find((doc) => doc.type === current.card.type);
-        return nextCard ? { driver: nextDriver, card: nextCard } : current;
-      });
+      const items = result.items;
+      setRows(items);
+      if (!skipPreviewSync.current) {
+        setPreview((current) => {
+          if (!current) return current;
+          const nextDriver = items.find((row) => row.driverId === current.driver.driverId);
+          if (!nextDriver) return current;
+          const nextCard = nextDriver.documents.find((doc) => doc.type === current.card.type);
+          return nextCard ? { driver: nextDriver, card: nextCard } : current;
+        });
+      }
+      return items;
     } catch (err) {
       if (!silent) {
         setError(err instanceof Error ? err.message : 'Could not load driver documents');
       }
+      return [] as AdminDriverDocumentsRow[];
     } finally {
       if (!silent) setLoading(false);
     }
@@ -65,36 +99,57 @@ export function DriverDocumentsPage() {
 
   const verify = async (status: 'approved' | 'rejected') => {
     if (!preview?.card.id) return;
-    if (status === 'approved' && !identityOk) {
-      setError('Confirm that these documents belong to this driver and match their details.');
+    if (status === 'approved' && preview.card.status === 'approved') {
       return;
     }
     if (status === 'rejected' && rejectReason.trim().length < 5) {
       setError('Enter a rejection reason (at least 5 characters).');
       return;
     }
+    const driverId = preview.driver.driverId;
     setBusyId(preview.card.id);
     setError('');
+    skipPreviewSync.current = true;
     try {
-      await adminApi.verifyDriverDocument(preview.driver.driverId, preview.card.id, {
+      await adminApi.verifyDriverDocument(driverId, preview.card.id, {
         status,
         note: status === 'rejected' ? rejectReason.trim() : undefined,
       });
-      setIdentityOk(false);
       setRejectReason('');
-      await load(true);
+      const items = await load(true);
+      const driver = items.find((row) => row.driverId === driverId);
+      if (status === 'rejected' || !driver) {
+        setPreview(null);
+        return;
+      }
+      const next = nextUnverifiedCard(driver);
+      if (next) {
+        setPreview({ driver, card: next });
+        return;
+      }
+      setPreview(null);
+      const allVerified = orderedDocuments(driver.documents).every((doc) => doc.status === 'approved');
+      if (allVerified && driver.verificationStatus !== 'approved') {
+        await adminApi.updateDriverVerification(driver.driverId, 'approved', {
+          identityConfirmed: true,
+        });
+        await load(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update document');
     } finally {
+      skipPreviewSync.current = false;
       setBusyId(null);
     }
   };
 
   const approveDriver = async () => {
     if (!approveTarget) return;
-    const mismatch = approveTarget.documents.some(
-      (doc) => !doc.fileUrl || doc.status !== 'approved',
-    );
+    const mismatch = approveTarget.documents.some((doc) => {
+      const twoSided = doc.type !== 'profile_photo';
+      const filesOk = twoSided ? Boolean(doc.fileUrl) && Boolean(doc.fileUrlBack) : Boolean(doc.fileUrl);
+      return !filesOk || doc.status !== 'approved';
+    });
     if (mismatch) {
       setError(
         'Verify all four documents first. Do not approve if they belong to different people or the details do not match.',
@@ -140,7 +195,8 @@ export function DriverDocumentsPage() {
                   <h2 className="text-lg font-semibold text-admin-ink">{driver.name}</h2>
                   <p className="text-sm text-admin-muted">
                     {driver.phone || 'No phone'}
-                    {driver.email ? ` · ${driver.email}` : ''} · {driver.verificationStatus}
+                    {driver.email ? ` · ${driver.email}` : ''} ·{' '}
+                    {driver.verificationStatus === 'approved' ? 'Verified' : driver.verificationStatus}
                   </p>
                 </div>
                 {driver.verificationStatus !== 'approved' ? (
@@ -162,15 +218,15 @@ export function DriverDocumentsPage() {
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {driver.documents.map((card) => {
-                  const uploaded = Boolean(card.fileUrl);
+                {orderedDocuments(driver.documents).map((card) => {
+                  const twoSided = card.type !== 'profile_photo';
+                  const uploaded = isCardUploaded(card);
                   return (
                     <button
                       key={card.type}
                       type="button"
                       disabled={!uploaded}
                       onClick={() => {
-                        setIdentityOk(false);
                         setRejectReason('');
                         uploaded && setPreview({ driver, card });
                       }}
@@ -178,24 +234,38 @@ export function DriverDocumentsPage() {
                     >
                       <p className="text-sm font-semibold text-admin-ink">{cardLabel(card.type)}</p>
                       {uploaded ? (
-                        <div className="mt-2 overflow-hidden rounded-xl bg-slate-100">
+                        <div
+                          className={cn(
+                            'mt-2 overflow-hidden rounded-xl bg-slate-100',
+                            twoSided && 'grid grid-cols-2 gap-1',
+                          )}
+                        >
                           {card.mimeType === 'application/pdf' ? (
-                            <div className="flex h-36 items-center justify-center text-xs text-admin-muted">
+                            <div className="col-span-2 flex h-36 items-center justify-center text-xs text-admin-muted">
                               PDF uploaded · Open
                             </div>
                           ) : (
-                            <img
-                              src={resolveMediaUrl(card.fileUrl!)}
-                              alt={cardLabel(card.type)}
-                              className="h-36 w-full object-cover"
-                            />
+                            <>
+                              <img
+                                src={resolveMediaUrl(card.fileUrl!)}
+                                alt={`${cardLabel(card.type)} front`}
+                                className="h-36 w-full object-cover"
+                              />
+                              {twoSided && card.fileUrlBack ? (
+                                <img
+                                  src={resolveMediaUrl(card.fileUrlBack)}
+                                  alt={`${cardLabel(card.type)} back`}
+                                  className="h-36 w-full object-cover"
+                                />
+                              ) : null}
+                            </>
                           )}
                         </div>
                       ) : (
                         <p className="mt-3 text-xs text-admin-muted">Not uploaded yet</p>
                       )}
                       <p className="mt-2 text-[11px] uppercase tracking-wide text-admin-muted">
-                        {uploaded ? card.status : 'missing'}
+                        {documentStatusLabel(card.status, uploaded)}
                       </p>
                     </button>
                   );
@@ -237,55 +307,61 @@ export function DriverDocumentsPage() {
                 className="h-[55vh] w-full rounded-xl border border-admin-line"
               />
             ) : (
-              <img
-                src={resolveMediaUrl(preview.card.fileUrl)}
-                alt={cardLabel(preview.card.type)}
-                className="max-h-[50vh] w-full rounded-xl object-contain"
-              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <figure>
+                  <figcaption className="mb-1 text-xs font-medium text-admin-muted">Front side</figcaption>
+                  <img
+                    src={resolveMediaUrl(preview.card.fileUrl)}
+                    alt={`${cardLabel(preview.card.type)} front`}
+                    className="max-h-[50vh] w-full rounded-xl object-contain"
+                  />
+                </figure>
+                {preview.card.type !== 'profile_photo' && preview.card.fileUrlBack ? (
+                  <figure>
+                    <figcaption className="mb-1 text-xs font-medium text-admin-muted">Back side</figcaption>
+                    <img
+                      src={resolveMediaUrl(preview.card.fileUrlBack)}
+                      alt={`${cardLabel(preview.card.type)} back`}
+                      className="max-h-[50vh] w-full rounded-xl object-contain"
+                    />
+                  </figure>
+                ) : null}
+              </div>
             )}
 
-            <label className="mt-4 flex items-start gap-2 text-sm text-admin-ink">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={identityOk}
-                onChange={(event) => setIdentityOk(event.target.checked)}
-              />
-              <span>
-                I verified this file belongs to {preview.driver.name}
-                {preview.driver.phone ? ` (${preview.driver.phone})` : ''} and matches their submitted
-                details.
-              </span>
-            </label>
-
-            <label className="mt-3 block text-sm font-medium text-admin-ink">
-              Rejection reason (required only if rejecting)
-              <textarea
-                className="admin-input mt-1 min-h-[72px] w-full"
-                value={rejectReason}
-                onChange={(event) => setRejectReason(event.target.value)}
-                placeholder="Describe what is wrong or inconsistent"
-              />
-            </label>
-
-            <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                className="admin-btn-ghost text-admin-rose"
-                disabled={Boolean(busyId)}
-                onClick={() => void verify('rejected')}
-              >
-                Reject document
-              </button>
-              <button
-                type="button"
-                className="admin-btn-primary"
-                disabled={Boolean(busyId) || !identityOk || preview.card.status === 'approved'}
-                onClick={() => void verify('approved')}
-              >
-                {preview.card.status === 'approved' ? 'Verified' : 'Verify document'}
-              </button>
-            </div>
+            {preview.card.status === 'approved' ? (
+              <p className="mt-4 text-sm font-medium text-admin-teal">Verified</p>
+            ) : (
+              <>
+                <label className="mt-3 block text-sm font-medium text-admin-ink">
+                  Rejection reason (required only if rejecting)
+                  <textarea
+                    className="admin-input mt-1 min-h-[72px] w-full"
+                    value={rejectReason}
+                    onChange={(event) => setRejectReason(event.target.value)}
+                    placeholder="Describe what is wrong or inconsistent"
+                  />
+                </label>
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    className="admin-btn-ghost text-admin-rose"
+                    disabled={Boolean(busyId)}
+                    onClick={() => void verify('rejected')}
+                  >
+                    Reject document
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn-primary"
+                    disabled={Boolean(busyId)}
+                    onClick={() => void verify('approved')}
+                  >
+                    Verify
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       ) : null}

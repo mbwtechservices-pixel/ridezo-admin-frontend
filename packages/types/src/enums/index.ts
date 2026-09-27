@@ -86,6 +86,11 @@ export enum VehicleType {
   BIKE = 'bike',
 }
 
+export enum RideServiceKind {
+  RIDE = 'ride',
+  PARCEL = 'parcel',
+}
+
 export enum VehicleStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
