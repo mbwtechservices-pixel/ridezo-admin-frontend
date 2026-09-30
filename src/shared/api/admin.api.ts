@@ -141,7 +141,7 @@ export interface AdminDriverRow {
 
 export interface AdminDriverDocumentCard {
   id: string | null;
-  type: 'driving_license' | 'aadhaar' | 'pan' | 'profile_photo' | string;
+  type: 'driving_license' | 'aadhaar' | 'vehicle_insurance' | 'vehicle_registration' | 'profile_photo' | string;
   fileUrl: string | null;
   frontImage?: string | null;
   fileName: string | null;
@@ -152,6 +152,39 @@ export interface AdminDriverDocumentCard {
   mimeTypeBack?: string | null;
   status: string;
   uploadedAt: string | null;
+  vehiclePlate?: string | null;
+  scope?: 'driver' | 'pending_vehicle' | 'vehicle';
+  vehicleId?: string | null;
+}
+
+export interface AdminDriverVehicle {
+  id: string;
+  type: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  plate: string;
+  verificationStatus: string;
+  status?: string;
+  isActive: boolean;
+  isDefault?: boolean;
+  documents: AdminDriverDocumentCard[];
+}
+
+export interface AdminPendingVehicle {
+  id: string;
+  type: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  plate: string;
+  verificationStatus: string;
+  rejectionReason?: string | null;
+  replacesVehicleId?: string | null;
+  intent?: 'edit' | 'add';
+  documents: AdminDriverDocumentCard[];
 }
 
 export interface AdminDriverDocumentsRow {
@@ -163,6 +196,13 @@ export interface AdminDriverDocumentsRow {
   documentsUploaded?: boolean;
   documentsVerified?: boolean;
   documents: AdminDriverDocumentCard[];
+  vehicleId?: string | null;
+  vehiclePlate?: string | null;
+  vehicleType?: string | null;
+  activeVehicleId?: string | null;
+  vehicles?: AdminDriverVehicle[];
+  pendingVehicle?: AdminPendingVehicle | null;
+  pendingVehicles?: AdminPendingVehicle[];
 }
 
 export interface AdminDashboardStats {
@@ -389,9 +429,19 @@ export const adminApi = {
   verifyDriverDocument: (
     driverId: string,
     documentId: string,
-    body: { status: 'approved' | 'rejected'; note?: string },
+    body: { status: 'approved' | 'rejected'; note?: string; vehiclePlateMatches?: boolean },
   ) =>
     patchData(`/admin/drivers/${driverId}/documents/${documentId}/verify`, body),
+  verifyPendingVehicleDocument: (
+    driverId: string,
+    vehicleId: string,
+    documentId: string,
+    body: { status: 'approved' | 'rejected'; note?: string; vehiclePlateMatches?: boolean },
+  ) =>
+    patchData(
+      `/admin/drivers/${driverId}/vehicles/${vehicleId}/documents/${documentId}/verify`,
+      body,
+    ),
   listUsers: (params?: { search?: string }) =>
     getData<Paginated<AdminUserRow>>('/admin/users', { limit: 100, sortOrder: 'desc', ...params }),
   getDashboard: () => getData<AdminDashboardStats>('/admin/dashboard'),

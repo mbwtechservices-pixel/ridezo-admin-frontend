@@ -98,6 +98,12 @@ export enum VehicleStatus {
   REJECTED = 'rejected',
 }
 
+export enum VehicleVerificationStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
 export enum DriverStatus {
   OFFLINE = 'offline',
   ONLINE = 'online',

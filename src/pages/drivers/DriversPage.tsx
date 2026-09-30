@@ -113,13 +113,13 @@ export function DriversPage() {
     if (!approveTarget) return;
     if (!approveTarget.documentsVerified) {
       setError(
-        'Verify Driving License, Aadhaar, PAN, and Profile Photo first. Do not approve if they belong to different people or the details do not match.',
+        'Verify Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo first.',
       );
       return;
     }
     if (!identityConfirmed) {
       setError(
-        'Confirm that Aadhaar, PAN, Driving License, and Profile Photo belong to the same person before approving.',
+        'Confirm that Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo match this driver before approving.',
       );
       return;
     }
@@ -229,7 +229,7 @@ export function DriversPage() {
             );
           }
 
-          const uploaded = Boolean(driver.documentsUploaded) || (driver.uploadedDocuments ?? 0) >= 4;
+          const uploaded = Boolean(driver.documentsUploaded) || (driver.uploadedDocuments ?? 0) >= 5;
           const verified = Boolean(driver.documentsVerified);
           return (
             <div className="flex flex-wrap items-center gap-1">
@@ -238,8 +238,8 @@ export function DriversPage() {
                 className="admin-btn-ghost text-xs text-admin-teal"
                 title={
                   uploaded
-                    ? 'Approve after confirming all four documents belong to the same person'
-                    : 'Driver must upload Driving License, Aadhaar, PAN, and Profile Photo first'
+                    ? 'Approve after verifying all required documents'
+                    : 'Driver must upload Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo first'
                 }
                 onClick={() => {
                   setApproveTarget(driver);
@@ -264,7 +264,7 @@ export function DriversPage() {
                 Reject
               </button>
               <Link to="/driver-documents" className="admin-btn-ghost text-xs">
-                {verified ? 'Documents verified' : `${driver.verifiedDocuments ?? 0}/4 docs`}
+                {verified ? 'Documents verified' : `${driver.verifiedDocuments ?? 0}/5 docs`}
               </Link>
             </div>
           );
@@ -278,7 +278,7 @@ export function DriversPage() {
     <div>
       <PageHeader
         title="Drivers"
-        description="New drivers stay in Pending Verification until you confirm Aadhaar, PAN, Driving License, and Profile Photo belong to the same person, then Approve. Ban/Unban is available for approved drivers."
+        description="New drivers stay in Pending Verification until you verify Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo, then Approve. Ban/Unban is available for approved drivers."
       />
       {error && <p className="mb-4 text-sm text-admin-rose">{error}</p>}
       {loading && rows.length === 0 ? (
@@ -292,12 +292,13 @@ export function DriversPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
             <h3 className="text-lg font-semibold text-admin-ink">Approve {approveTarget.name}</h3>
             <p className="mt-1 text-sm text-admin-muted">
-              Review Aadhaar, PAN, Driving License, and Profile Photo. Approve only if they belong
-              to the same person and the details are consistent. If they show different people or
-              mismatched details, close this dialog and Reject the driver.
+              Review Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate
+              (RC), and Profile Photo. Approve only if the documents match this driver and the RC
+              matches the registered vehicle. If they do not match, close this dialog and Reject the
+              driver.
             </p>
             <p className="mt-3 text-sm text-admin-ink">
-              Documents verified: {approveTarget.verifiedDocuments ?? 0}/4
+              Documents verified: {approveTarget.verifiedDocuments ?? 0}/5
               {approveTarget.documentsVerified ? ' · ready' : ' · open Driver Documents first'}
             </p>
             <label className="mt-4 flex items-start gap-2 text-sm text-admin-ink">
@@ -308,8 +309,8 @@ export function DriversPage() {
                 onChange={(event) => setIdentityConfirmed(event.target.checked)}
               />
               <span>
-                I confirm Aadhaar, PAN, Driving License, and Profile Photo belong to the same person
-                and match this driver.
+                I confirm Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate
+                (RC), and Profile Photo match this driver.
               </span>
             </label>
             <div className="mt-5 flex justify-end gap-2">

@@ -27,6 +27,7 @@ import type {
   UserStatus,
   VehicleStatus,
   VehicleType,
+  VehicleVerificationStatus,
   WalletTransactionSource,
   WalletTransactionType,
 } from '../enums';
@@ -120,6 +121,10 @@ export interface Vehicle extends BaseEntity, SoftDeletable {
   licensePlate: string;
   capacity: number;
   isDefault: boolean;
+  verificationStatus: VehicleVerificationStatus;
+  replacesVehicleId?: string;
+  rejectionReason?: string;
+  detailsMatchConfirmed?: boolean;
   registrationNumber?: string;
   insuranceExpiry?: Date;
   images: string[];
