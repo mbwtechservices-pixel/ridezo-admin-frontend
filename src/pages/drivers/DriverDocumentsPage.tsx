@@ -61,6 +61,12 @@ function pendingEdits(driver: AdminDriverDocumentsRow): AdminPendingVehicle[] {
   );
 }
 
+function pendingAdds(driver: AdminDriverDocumentsRow): AdminPendingVehicle[] {
+  return (driver.pendingVehicles ?? (driver.pendingVehicle ? [driver.pendingVehicle] : [])).filter(
+    (item) => item.intent === 'add' && !item.replacesVehicleId,
+  );
+}
+
 function isCardUploaded(card: AdminDriverDocumentCard): boolean {
   const twoSided = card.type !== 'profile_photo';
   const front = Boolean(card.frontImage || card.fileUrl);
@@ -175,6 +181,12 @@ export function DriverDocumentsPage() {
   const [rcPlateOk, setRcPlateOk] = useState(false);
   const [approveTarget, setApproveTarget] = useState<AdminDriverDocumentsRow | null>(null);
   const [approveIdentityOk, setApproveIdentityOk] = useState(false);
+  const [vehicleApproveTarget, setVehicleApproveTarget] = useState<{
+    driver: AdminDriverDocumentsRow;
+    vehicleId: string;
+    label: string;
+  } | null>(null);
+  const [vehicleApproveOk, setVehicleApproveOk] = useState(false);
   const [preview, setPreview] = useState<{
     driver: AdminDriverDocumentsRow;
     card: AdminDriverDocumentCard;
@@ -226,6 +238,16 @@ export function DriverDocumentsPage() {
     const timer = window.setInterval(() => void load(true), POLL_MS);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  // Keep the approve popup in sync with refreshed document statuses so Confirm Approve
+  // enables as soon as identity (and vehicle docs, when present) are verified.
+  useEffect(() => {
+    if (!approveTarget) return;
+    const fresh = rows.find((row) => row.driverId === approveTarget.driverId);
+    if (fresh && fresh !== approveTarget) {
+      setApproveTarget(fresh);
+    }
+  }, [rows, approveTarget]);
 
   const verify = async (status: 'approved' | 'rejected') => {
     if (!preview?.card.id) return;
@@ -309,16 +331,33 @@ export function DriverDocumentsPage() {
     }
   };
 
+  const canConfirmApproveDriver = (driver: AdminDriverDocumentsRow): boolean => {
+    const identityDocs = orderedDriverDocuments(driver.documents);
+    if (identityDocs.length < DRIVER_DOCUMENT_ORDER.length) return false;
+    const identityOk = identityDocs.every((doc) => {
+      const uploaded = isCardUploaded(doc);
+      return uploaded && doc.status === 'approved';
+    });
+    if (!identityOk) return false;
+    const vehicles = driverVehicles(driver).filter(
+      (vehicle) => vehicle.verificationStatus !== 'rejected',
+    );
+    // Drivers may be approved without a vehicle; vehicle docs are required only when one exists.
+    if (vehicles.length === 0) return true;
+    return vehicles.some((vehicle) =>
+      vehicle.documents.every((doc) => isCardUploaded(doc) && doc.status === 'approved'),
+    );
+  };
+
+  const canConfirmApproveVehicle = (vehicle: AdminDriverVehicle | AdminPendingVehicle): boolean => {
+    return vehicle.documents.every((doc) => isCardUploaded(doc) && doc.status === 'approved');
+  };
+
   const approveDriver = async () => {
     if (!approveTarget) return;
-    const mismatch = approveTarget.documents.some((doc) => {
-      const twoSided = doc.type !== 'profile_photo';
-      const filesOk = twoSided ? Boolean(doc.fileUrl) && Boolean(doc.fileUrlBack) : Boolean(doc.fileUrl);
-      return !filesOk || doc.status !== 'approved';
-    });
-    if (mismatch) {
+    if (!canConfirmApproveDriver(approveTarget)) {
       setError(
-        'Verify all required documents first, including Vehicle RC. Do not approve if the details do not match.',
+        'Verify Driving License, Aadhaar Card, and Profile Photo first. If a vehicle is registered, also verify its Insurance and RC.',
       );
       return;
     }
@@ -338,6 +377,29 @@ export function DriverDocumentsPage() {
       await load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not approve driver');
+    }
+  };
+
+  const approveVehicle = async () => {
+    if (!vehicleApproveTarget) return;
+    if (!vehicleApproveOk) {
+      setError('Confirm the vehicle details, RC, and insurance before approving.');
+      return;
+    }
+    setError('');
+    setBusyId(vehicleApproveTarget.vehicleId);
+    try {
+      await adminApi.approvePendingVehicle(
+        vehicleApproveTarget.driver.driverId,
+        vehicleApproveTarget.vehicleId,
+      );
+      setVehicleApproveTarget(null);
+      setVehicleApproveOk(false);
+      await load(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not approve vehicle');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -411,6 +473,31 @@ export function DriverDocumentsPage() {
                   />
                 ))}
               </div>
+              {driverVehicles(driver).length === 0 ? (
+                <div className="mt-4">
+                  <p className="mb-3 text-sm font-semibold text-admin-ink">
+                    Vehicle documents (no vehicle registered yet)
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {driver.documents
+                      .filter(
+                        (doc) =>
+                          doc.type === 'vehicle_insurance' || doc.type === 'vehicle_registration',
+                      )
+                      .map((card) => (
+                        <DocumentThumb
+                          key={card.type}
+                          card={card}
+                          onOpen={() => openCard(driver, card)}
+                        />
+                      ))}
+                  </div>
+                  <p className="mt-2 text-xs text-admin-muted">
+                    This driver can add a Bike, Auto, or Car after account approval. Vehicle RC and
+                    Insurance uploaded later appear under that vehicle for separate approval.
+                  </p>
+                </div>
+              ) : null}
               {driverVehicles(driver).map((vehicle) => {
                 const relatedEdits = pendingEdits(driver).filter(
                   (item) => item.replacesVehicleId === vehicle.id,
@@ -452,12 +539,38 @@ export function DriverDocumentsPage() {
                             openCard(
                               driver,
                               card,
-                              card.scope === 'pending_vehicle' ? vehicle.id : undefined,
+                              card.scope === 'pending_vehicle' ||
+                                vehicle.verificationStatus === 'pending'
+                                ? vehicle.id
+                                : undefined,
                             )
                           }
                         />
                       ))}
                     </div>
+                    {vehicle.verificationStatus === 'pending' ? (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs text-admin-muted">
+                          Vehicle stays unavailable for rides until you Confirm Approve.
+                        </p>
+                        <button
+                          type="button"
+                          className="admin-btn-primary text-sm"
+                          disabled={!canConfirmApproveVehicle(vehicle)}
+                          onClick={() => {
+                            setVehicleApproveTarget({
+                              driver,
+                              vehicleId: vehicle.id,
+                              label: `${vehicle.type.toUpperCase()} · ${vehicle.plate || 'No plate'}`,
+                            });
+                            setVehicleApproveOk(false);
+                            setError('');
+                          }}
+                        >
+                          Confirm Approve vehicle
+                        </button>
+                      </div>
+                    ) : null}
                     {relatedEdits.map((pending) => (
                       <div
                         key={pending.id}
@@ -479,11 +592,73 @@ export function DriverDocumentsPage() {
                             />
                           ))}
                         </div>
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            type="button"
+                            className="admin-btn-primary text-sm"
+                            disabled={!canConfirmApproveVehicle(pending)}
+                            onClick={() => {
+                              setVehicleApproveTarget({
+                                driver,
+                                vehicleId: pending.id,
+                                label: `Edit · ${pending.type.toUpperCase()} · ${pending.plate}`,
+                              });
+                              setVehicleApproveOk(false);
+                              setError('');
+                            }}
+                          >
+                            Confirm Approve vehicle
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 );
               })}
+              {pendingAdds(driver)
+                .filter((pending) => !driverVehicles(driver).some((vehicle) => vehicle.id === pending.id))
+                .map((pending) => (
+                  <div
+                    key={pending.id}
+                    className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4"
+                  >
+                    <h3 className="text-sm font-semibold text-admin-ink">
+                      Additional vehicle approval request
+                    </h3>
+                    <p className="mt-1 text-sm text-admin-muted">
+                      {driver.name} submitted a new {pending.type.toUpperCase()} · {pending.make}{' '}
+                      {pending.model} · {pending.year} · {pending.color} · {pending.plate}. Verify RC
+                      and Insurance below. The vehicle stays unavailable until you Confirm Approve.
+                    </p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {pending.documents.map((card) => (
+                        <DocumentThumb
+                          key={`${pending.id}-${card.type}`}
+                          card={card}
+                          onOpen={() => openCard(driver, card, pending.id)}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        className="admin-btn-primary text-sm"
+                        disabled={!canConfirmApproveVehicle(pending)}
+                        onClick={() => {
+                          setVehicleApproveTarget({
+                            driver,
+                            vehicleId: pending.id,
+                            label: `${pending.type.toUpperCase()} · ${pending.plate}`,
+                          });
+                          setVehicleApproveOk(false);
+                          setError('');
+                        }}
+                      >
+                        Confirm Approve vehicle
+                      </button>
+                    </div>
+                  </div>
+                ))}
               {pendingEdits(driver)
                 .filter(
                   (pending) =>
@@ -641,6 +816,61 @@ export function DriverDocumentsPage() {
         </div>
       ) : null}
 
+      {vehicleApproveTarget ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => {
+            setVehicleApproveTarget(null);
+            setVehicleApproveOk(false);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-admin-ink">
+              Approve vehicle for {vehicleApproveTarget.driver.name}
+            </h3>
+            <p className="mt-1 text-sm text-admin-muted">
+              {vehicleApproveTarget.label}. Existing approved vehicles stay available. This vehicle
+              becomes usable only after Confirm Approve.
+            </p>
+            <label className="mt-4 flex items-start gap-2 text-sm text-admin-ink">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={vehicleApproveOk}
+                onChange={(event) => setVehicleApproveOk(event.target.checked)}
+              />
+              <span>
+                I confirm the vehicle details, RC front/back, and Insurance front/back match this
+                vehicle.
+              </span>
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="admin-btn-ghost"
+                onClick={() => {
+                  setVehicleApproveTarget(null);
+                  setVehicleApproveOk(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn-primary"
+                disabled={!vehicleApproveOk || Boolean(busyId)}
+                onClick={() => void approveVehicle()}
+              >
+                Confirm Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {approveTarget ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -652,20 +882,28 @@ export function DriverDocumentsPage() {
           >
             <h3 className="text-lg font-semibold text-admin-ink">Approve {approveTarget.name}</h3>
             <p className="mt-1 text-sm text-admin-muted">
-              Approve only if Driving License, Aadhaar Card, Vehicle Insurance, Registration
-              Certificate (RC), and Profile Photo match this driver. Vehicle RC must match the
-              registered vehicle number.
+              {driverVehicles(approveTarget).length === 0
+                ? 'Approve only if Driving License, Aadhaar Card, and Profile Photo match this driver. They can add a Bike, Auto, or Car later for separate vehicle verification.'
+                : 'Approve only if Driving License, Aadhaar Card, Profile Photo, and at least one vehicle’s Insurance and RC match this driver. Vehicle RC must match the registered vehicle number.'}
             </p>
+            {!canConfirmApproveDriver(approveTarget) ? (
+              <p className="mt-3 text-sm text-admin-rose">
+                Verify all required documents first. Confirm Approve stays disabled until every
+                required file is marked Verified.
+              </p>
+            ) : null}
             <label className="mt-4 flex items-start gap-2 text-sm text-admin-ink">
               <input
                 type="checkbox"
                 className="mt-1"
                 checked={approveIdentityOk}
+                disabled={!canConfirmApproveDriver(approveTarget)}
                 onChange={(event) => setApproveIdentityOk(event.target.checked)}
               />
               <span>
-                I confirm Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate
-                (RC), and Profile Photo match this driver.
+                {driverVehicles(approveTarget).length === 0
+                  ? 'I confirm Driving License, Aadhaar Card, and Profile Photo match this driver.'
+                  : 'I confirm Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo match this driver.'}
               </span>
             </label>
             <div className="mt-5 flex justify-end gap-2">
@@ -682,7 +920,7 @@ export function DriverDocumentsPage() {
               <button
                 type="button"
                 className="admin-btn-primary"
-                disabled={!approveIdentityOk || !approveTarget.documentsVerified}
+                disabled={!approveIdentityOk || !canConfirmApproveDriver(approveTarget)}
                 onClick={() => void approveDriver()}
               >
                 Confirm Approve

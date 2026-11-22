@@ -32,7 +32,6 @@ const INITIAL: SettingGroup[] = [
     description: 'Brand and platform defaults',
     fields: [
       { key: 'appName', label: 'App name', type: 'text', value: 'Ridezo' },
-      { key: 'supportEmail', label: 'Support email', type: 'text', value: 'support@ridezo.com' },
       { key: 'defaultCity', label: 'Default city', type: 'text', value: 'Bengaluru' },
     ],
   },
@@ -56,6 +55,105 @@ const INITIAL: SettingGroup[] = [
 ];
 
 const GREETING_MAX = 60;
+
+function SupportContactPanel() {
+  const [contact, setContact] = useState({ email: '', phone: '' });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setContact(await adminApi.getSupportContact());
+    } catch (err) {
+      setError(friendlySettingsError(err, 'Could not load support contact'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      setContact(
+        await adminApi.updateSupportContact({
+          email: contact.email.trim(),
+          phone: contact.phone.trim(),
+        }),
+      );
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(friendlySettingsError(err, 'Could not save support contact'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="admin-panel p-6">
+      <h2 className="text-base font-semibold text-admin-ink">Help &amp; Support contact</h2>
+      <p className="mt-1 text-sm text-admin-muted">
+        Used by the User app Call and Email actions. Leave phone blank until a real support number is
+        available — do not invent one.
+      </p>
+      {loading ? (
+        <p className="mt-5 text-sm text-admin-muted">Loading…</p>
+      ) : (
+        <>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-admin-muted">Support email</span>
+              <input
+                className="admin-input"
+                type="email"
+                value={contact.email}
+                onChange={(e) => {
+                  setContact((prev) => ({ ...prev, email: e.target.value }));
+                  setSaved(false);
+                }}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-admin-muted">
+                Support phone
+              </span>
+              <input
+                className="admin-input"
+                type="tel"
+                value={contact.phone}
+                placeholder="Include country code, e.g. +91…"
+                onChange={(e) => {
+                  setContact((prev) => ({ ...prev, phone: e.target.value }));
+                  setSaved(false);
+                }}
+              />
+            </label>
+          </div>
+          <div className="mt-5 flex items-center gap-3">
+            <button
+              type="button"
+              className="admin-btn-primary"
+              disabled={saving || !contact.email.trim()}
+              onClick={() => void save()}
+            >
+              {saving ? 'Saving…' : saved ? 'Saved' : 'Save support contact'}
+            </button>
+            {error && <span className="text-sm text-red-600">{error}</span>}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
 function GreetingsPanel() {
   const [greetings, setGreetings] = useState<Greetings>({ user: '', driver: '' });
@@ -638,6 +736,7 @@ export function SettingsPage() {
       <div className="space-y-4">
         <AppAvailabilityPanel />
         <AdsBannerPanel />
+        <SupportContactPanel />
         <ReferralCommissionPanel />
         <RentalCancellationPanel />
         <GreetingsPanel />

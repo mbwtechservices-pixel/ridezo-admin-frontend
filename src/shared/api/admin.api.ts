@@ -442,6 +442,8 @@ export const adminApi = {
       `/admin/drivers/${driverId}/vehicles/${vehicleId}/documents/${documentId}/verify`,
       body,
     ),
+  approvePendingVehicle: (driverId: string, vehicleId: string) =>
+    postData(`/admin/drivers/${driverId}/vehicles/${vehicleId}/approve`, {}),
   listUsers: (params?: { search?: string }) =>
     getData<Paginated<AdminUserRow>>('/admin/users', { limit: 100, sortOrder: 'desc', ...params }),
   getDashboard: () => getData<AdminDashboardStats>('/admin/dashboard'),
@@ -555,4 +557,40 @@ export const adminApi = {
     getData<ReferralCommissions>('/admin/settings/referral-commissions'),
   updateReferralCommissions: (body: Partial<ReferralCommissions>) =>
     patchData<ReferralCommissions>('/admin/settings/referral-commissions', body),
+
+  getSupportContact: () =>
+    getData<{ email: string; phone: string }>('/admin/settings/support-contact'),
+  updateSupportContact: (body: { email?: string; phone?: string }) =>
+    patchData<{ email: string; phone: string }>('/admin/settings/support-contact', body),
+
+  listSupportConversations: () =>
+    getData<{
+      items: Array<{
+        id: string;
+        userId: string;
+        userName: string;
+        userPhone: string;
+        userEmail: string;
+        status: string;
+        lastMessageAt?: string;
+        lastMessagePreview?: string;
+        unreadByAdmin?: number;
+      }>;
+    }>('/admin/support/conversations'),
+  listSupportMessages: (id: string) =>
+    getData<{
+      messages: Array<{
+        id: string;
+        body: string;
+        senderRole: 'customer' | 'admin';
+        createdAt: string;
+      }>;
+    }>(`/admin/support/conversations/${id}/messages`),
+  sendSupportMessage: (id: string, body: string) =>
+    postData<{
+      id: string;
+      body: string;
+      senderRole: 'customer' | 'admin';
+      createdAt: string;
+    }>(`/admin/support/conversations/${id}/messages`, { body }),
 };

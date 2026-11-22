@@ -22,6 +22,7 @@ import {
   PanelLeftOpen,
   Music2,
   Megaphone,
+  MessageCircle,
 } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -33,6 +34,7 @@ const nav = [
   { to: '/users', label: 'Users', icon: Users },
   { to: '/drivers', label: 'Drivers', icon: CarFront },
   { to: '/driver-documents', label: 'Driver Documents', icon: FileText },
+  { to: '/support-chat', label: 'Support Chat', icon: MessageCircle },
   { to: '/vehicles', label: 'Vehicles', icon: Car },
   { to: '/car-rentals', label: 'Car Rentals', icon: Key },
   { to: '/rental-bookings', label: 'Rental Bookings', icon: CalendarDays },
