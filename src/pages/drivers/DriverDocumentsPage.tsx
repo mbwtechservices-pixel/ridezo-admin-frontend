@@ -21,7 +21,7 @@ const CARD_LABELS: Record<string, string> = {
   insurance: 'Vehicle Insurance',
   vehicle_registration: 'Registration Certificate (RC)',
   rc: 'Registration Certificate (RC)',
-  profile_photo: 'Profile Photo',
+  profile_photo: 'Owner Selfie',
 };
 
 const DRIVER_DOCUMENT_ORDER = ['driving_license', 'aadhaar', 'profile_photo'] as const;
@@ -315,14 +315,9 @@ export function DriverDocumentsPage() {
         });
         return;
       }
+      // All documents are now individually approved. The driver account itself is
+      // approved separately via "Approve driver" so Admin always makes the final call.
       setPreview(null);
-      const allVerified = driver.documentsVerified;
-      if (allVerified && driver.verificationStatus !== 'approved') {
-        await adminApi.updateDriverVerification(driver.driverId, 'approved', {
-          identityConfirmed: true,
-        });
-        await load(true);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update document');
     } finally {
@@ -357,13 +352,13 @@ export function DriverDocumentsPage() {
     if (!approveTarget) return;
     if (!canConfirmApproveDriver(approveTarget)) {
       setError(
-        'Verify Driving License, Aadhaar Card, and Profile Photo first. If a vehicle is registered, also verify its Insurance and RC.',
+        'Verify Driving License, Aadhaar Card, and Owner Selfie first. If a vehicle is registered, also verify its Insurance and RC.',
       );
       return;
     }
     if (!approveIdentityOk) {
       setError(
-        'Confirm that Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo match this driver before approving.',
+        'Confirm that Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Owner Selfie match this driver before approving.',
       );
       return;
     }
@@ -417,7 +412,7 @@ export function DriverDocumentsPage() {
     <div>
       <PageHeader
         title="Driver Documents"
-        description="Open each file and verify it. Driver identity documents stay at the top. Each registered vehicle has its own details, insurance, and RC. Approve the account only after Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo are confirmed."
+        description="Open each file and verify it. Driver identity documents stay at the top. Each registered vehicle has its own details, insurance, and RC. Approve the account only after Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Owner Selfie are confirmed."
       />
       {error && <p className="mb-4 text-sm text-admin-rose">{error}</p>}
       {loading && rows.length === 0 ? (
@@ -725,7 +720,7 @@ export function DriverDocumentsPage() {
                 <InspectableDocumentImage
                   src={documentImageSrc(preview.card, 'front')!}
                   alt={`${cardLabel(preview.card.type)} front`}
-                  caption={preview.card.type === 'profile_photo' ? 'Profile Photo' : 'Front side'}
+                  caption={preview.card.type === 'profile_photo' ? 'Owner Selfie' : 'Front side'}
                 />
                 {preview.card.type !== 'profile_photo' && documentImageSrc(preview.card, 'back') ? (
                   <InspectableDocumentImage
@@ -883,8 +878,8 @@ export function DriverDocumentsPage() {
             <h3 className="text-lg font-semibold text-admin-ink">Approve {approveTarget.name}</h3>
             <p className="mt-1 text-sm text-admin-muted">
               {driverVehicles(approveTarget).length === 0
-                ? 'Approve only if Driving License, Aadhaar Card, and Profile Photo match this driver. They can add a Bike, Auto, or Car later for separate vehicle verification.'
-                : 'Approve only if Driving License, Aadhaar Card, Profile Photo, and at least one vehicle’s Insurance and RC match this driver. Vehicle RC must match the registered vehicle number.'}
+                ? 'Approve only if Driving License, Aadhaar Card, and Owner Selfie match this driver. They can add a Bike, Auto, or Car later for separate vehicle verification.'
+                : 'Approve only if Driving License, Aadhaar Card, Owner Selfie, and at least one vehicle’s Insurance and RC match this driver. Vehicle RC must match the registered vehicle number.'}
             </p>
             {!canConfirmApproveDriver(approveTarget) ? (
               <p className="mt-3 text-sm text-admin-rose">
@@ -902,8 +897,8 @@ export function DriverDocumentsPage() {
               />
               <span>
                 {driverVehicles(approveTarget).length === 0
-                  ? 'I confirm Driving License, Aadhaar Card, and Profile Photo match this driver.'
-                  : 'I confirm Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo match this driver.'}
+                  ? 'I confirm Driving License, Aadhaar Card, and Owner Selfie match this driver.'
+                  : 'I confirm Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Owner Selfie match this driver.'}
               </span>
             </label>
             <div className="mt-5 flex justify-end gap-2">

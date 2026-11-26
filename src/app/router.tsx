@@ -22,6 +22,7 @@ const SupportChatPage = lazyPage(
   () => import('@/pages/support/SupportChatPage'),
   'SupportChatPage',
 );
+const PricingPage = lazyPage(() => import('@/pages/pricing/PricingPage'), 'PricingPage');
 const VehiclesPage = lazyPage(() => import('@/pages/vehicles/VehiclesPage'), 'VehiclesPage');
 const TripsPage = lazyPage(() => import('@/pages/trips/TripsPage'), 'TripsPage');
 const PaymentsPage = lazyPage(() => import('@/pages/payments/PaymentsPage'), 'PaymentsPage');
@@ -71,6 +72,7 @@ export function AppRouter() {
             <Route path="/drivers" element={<DriversPage />} />
             <Route path="/driver-documents" element={<DriverDocumentsPage />} />
             <Route path="/support-chat" element={<SupportChatPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/payments" element={<PaymentsPage />} />

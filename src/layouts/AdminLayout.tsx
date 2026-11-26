@@ -23,6 +23,7 @@ import {
   Music2,
   Megaphone,
   MessageCircle,
+  Zap,
 } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -40,6 +41,7 @@ const nav = [
   { to: '/rental-bookings', label: 'Rental Bookings', icon: CalendarDays },
   { to: '/trips', label: 'Trips', icon: Route },
   { to: '/payments', label: 'Payments', icon: CreditCard },
+  { to: '/pricing', label: 'Pricing & Surge', icon: Zap },
   { to: '/coupons', label: 'Coupons', icon: Ticket },
   { to: '/locations', label: 'Locations', icon: MapPin },
   { to: '/recommended-places', label: 'Recommended Places', icon: Sparkles },

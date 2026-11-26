@@ -16,6 +16,60 @@ function toApiError(error: unknown, fallback: string): Error {
   return error instanceof Error ? error : new Error(fallback);
 }
 
+export interface PricingConfig {
+  minDriverWalletBalance: number;
+  platformChargePerRide: number;
+  commissionPercent: number;
+  additionalChargePerRide: number;
+  dailyCharge: number;
+  confirmationHours: number;
+}
+
+export interface SurgeRule {
+  id: string;
+  name: string;
+  scope: 'all' | 'pincode';
+  pincodes: string[];
+  vehicleTypes: string[];
+  type: 'percent' | 'fixed';
+  value: number;
+  demandThreshold: number;
+  startHour: number | null;
+  endHour: number | null;
+  isActive: boolean;
+}
+
+export interface PricingReport {
+  summary: {
+    days: number;
+    rides: number;
+    customerPaid: number;
+    surgeCollected: number;
+    driverEarnings: number;
+    platformCharges: number;
+    commission: number;
+    additionalCharges: number;
+    dailyCharges: number;
+    platformRevenue: number;
+  };
+  rides: Array<{
+    id: string;
+    tripId: string | null;
+    pincode: string | null;
+    vehicleType: string | null;
+    baseFare: number;
+    surgeFee: number;
+    surgeLabel: string | null;
+    customerFare: number;
+    chargeModel: string | null;
+    platformCharge: number;
+    commission: number;
+    additionalCharge: number;
+    driverNet: number;
+    settledAt: string;
+  }>;
+}
+
 interface Paginated<T> {
   items: T[];
   total: number;
@@ -557,6 +611,19 @@ export const adminApi = {
     getData<ReferralCommissions>('/admin/settings/referral-commissions'),
   updateReferralCommissions: (body: Partial<ReferralCommissions>) =>
     patchData<ReferralCommissions>('/admin/settings/referral-commissions', body),
+
+  getPricingConfig: () => getData<PricingConfig>('/admin/pricing/config'),
+  updatePricingConfig: (body: Partial<PricingConfig>) =>
+    patchData<PricingConfig>('/admin/pricing/config', body),
+  listSurgeRules: () => getData<SurgeRule[]>('/admin/pricing/surge-rules'),
+  createSurgeRule: (body: Partial<SurgeRule>) =>
+    postData<SurgeRule>('/admin/pricing/surge-rules', body),
+  updateSurgeRule: (id: string, body: Partial<SurgeRule>) =>
+    patchData<SurgeRule>(`/admin/pricing/surge-rules/${id}`, body),
+  deleteSurgeRule: (id: string) =>
+    deleteData<{ deleted: boolean }>(`/admin/pricing/surge-rules/${id}`),
+  getPricingReport: (days = 30) =>
+    getData<PricingReport>('/admin/pricing/report', { days }),
 
   getSupportContact: () =>
     getData<{ email: string; phone: string }>('/admin/settings/support-contact'),

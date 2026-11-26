@@ -292,6 +292,10 @@ export interface FareVehicleEstimate {
   total: number;
   currency: string;
   etaMinutes: number;
+  surgeFee?: number;
+  surgeLabel?: string | null;
+  fareBeforeSurge?: number;
+  quoteId?: string;
 }
 
 export interface FareEstimateResult {

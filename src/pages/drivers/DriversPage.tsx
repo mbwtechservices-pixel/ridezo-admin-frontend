@@ -113,13 +113,13 @@ export function DriversPage() {
     if (!approveTarget) return;
     if (!approveTarget.documentsVerified) {
       setError(
-        'Verify Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo first.',
+        'Verify Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Owner Selfie first.',
       );
       return;
     }
     if (!identityConfirmed) {
       setError(
-        'Confirm that Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo match this driver before approving.',
+        'Confirm that Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Owner Selfie match this driver before approving.',
       );
       return;
     }
@@ -239,7 +239,7 @@ export function DriversPage() {
                 title={
                   uploaded
                     ? 'Approve after verifying all required documents'
-                    : 'Driver must upload Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo first'
+                    : 'Driver must upload Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Owner Selfie first'
                 }
                 onClick={() => {
                   setApproveTarget(driver);
@@ -278,7 +278,7 @@ export function DriversPage() {
     <div>
       <PageHeader
         title="Drivers"
-        description="New drivers stay in Pending Verification until you verify Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Profile Photo, then Approve. Ban/Unban is available for approved drivers."
+        description="New drivers stay in Pending Verification until you verify Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate (RC), and Owner Selfie, then Approve. Ban/Unban is available for approved drivers."
       />
       {error && <p className="mb-4 text-sm text-admin-rose">{error}</p>}
       {loading && rows.length === 0 ? (
@@ -293,7 +293,7 @@ export function DriversPage() {
             <h3 className="text-lg font-semibold text-admin-ink">Approve {approveTarget.name}</h3>
             <p className="mt-1 text-sm text-admin-muted">
               Review Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate
-              (RC), and Profile Photo. Approve only if the documents match this driver and the RC
+              (RC), and Owner Selfie. Approve only if the documents match this driver and the RC
               matches the registered vehicle. If they do not match, close this dialog and Reject the
               driver.
             </p>
@@ -310,7 +310,7 @@ export function DriversPage() {
               />
               <span>
                 I confirm Driving License, Aadhaar Card, Vehicle Insurance, Registration Certificate
-                (RC), and Profile Photo match this driver.
+                (RC), and Owner Selfie match this driver.
               </span>
             </label>
             <div className="mt-5 flex justify-end gap-2">
